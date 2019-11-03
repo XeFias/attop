@@ -15,7 +15,7 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="template" lowerBound="1"
         eType="#//TemplateInstance" eOpposite="#//TemplateInstance/locations"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="location" lowerBound="1"
-        eType="ecore:EClass http://www.muml.org/uppaal/1.0.0#//templates/Location"/>
+        eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//templates/Location"/>
   </eClassifiers>
   <eSubpackages name="clocks" nsURI="dtm.Clocks" nsPrefix="dtm.Clocks">
     <eClassifiers xsi:type="ecore:EClass" name="AbstractClockBoundary" abstract="true">

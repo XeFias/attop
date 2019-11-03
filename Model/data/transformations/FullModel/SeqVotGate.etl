@@ -6,6 +6,9 @@ rule seqVotingGate
 	{
 		guard : node.connector.isKindOf(UATS!SAND) or node.connector.isKindOf(UATS!SOR)
 
+		/*PERK*/
+		System.out.println("ETL>seqVotingGate UATS!Node -> List : node = " + node.label );
+
 		var tmpl = new Uppaal!Template();
 		tmpl.name = "gate_" + node.id;
 		tmpl.declarations = new Uppaal!LocalDeclarations();

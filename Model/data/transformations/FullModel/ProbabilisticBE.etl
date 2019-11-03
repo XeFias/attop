@@ -5,6 +5,8 @@ rule probBE
 	to ret : List
 	{
 		guard : node.children.size() == 0 and node.getProbability() > -1 and not node.hasTimeDelay()
+		/*PERK*/
+		System.out.println("ETL>probBE UATS!Node -> List : node = " + node.label );
 
 		var tmpl = new Uppaal!Template();
 		tmpl.name = "ProbabilisticBE_" + node.id;

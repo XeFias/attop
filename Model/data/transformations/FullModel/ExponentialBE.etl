@@ -6,6 +6,9 @@ rule expBE
 	{
 		guard : node.children.size() == 0 and not node.getRates().isEmpty()
 
+		/*PERK*/
+		System.out.println("ETL>expBE UATS!Node -> List : node = " + node.label );
+
 		var tmpl = new Uppaal!Template();
 		tmpl.name = "ExponentialBE_" + node.id;
 		tmpl.declarations = new Uppaal!LocalDeclarations();
@@ -26,6 +29,10 @@ rule expBE
 		var parents = UATS!Node.allInstances.select(n | n.children.includes(node));
 		parentCountVar.setInitialValue(parents.size());
 		tmpl.declarations.declaration.add(createDataDeclaration(parentCountVar));
+
+		/*PERK*/
+		System.out.println("ETL>expBE UATS!Node -> List| parents_org = " + parents);
+		System.out.println("ETL>expBE UATS!Node -> List| parents = " + node.parents);
 
 		var initLocation = tmpl.createLocation("Init");
 		tmpl.init = initLocation;
@@ -89,12 +96,23 @@ rule expBE
 				activationEdge.setSync(activateVar, false);
 			}
 			var otherEdge = tmpl.createEdge(iLocation, firstActiveLocation);
-			otherEdge.addUpdate(
+			/*PERK old*/
+			/*otherEdge.addUpdate(
 				createAssignmentExpr(
 					createVariable("cost").createReferringExpression(),
 					createSum(createVariable("cost").createReferringExpression(),
 							  createLiteralExpression(aCost.asInteger().asString()))
 				)
+			);*/
+			/*PERK new increment using +=*/
+			var incrementer = createAssignmentExpr(
+					createVariable("cost").createReferringExpression(),
+				    createLiteralExpression(aCost.asInteger().asString())
+			);
+			incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;
+
+			otherEdge.addUpdate(
+				incrementer
 			);
 		} else {
 			activationEdge = tmpl.createEdge(initLocation, firstActiveLocation);
@@ -121,6 +139,9 @@ rule expBE
 		
 		var prob = node.getProbability();
 		if (prob > -1) {
+			/*PERK*/
+			System.out.println("ETL>expBE UATS!Node -> List | has probability");
+		
 			var committedLocation = tmpl.createLocation("Workaround"); // Needed because UPPAAL crashes if the entry to a chance node has a sync.
 			committedLocation.makeCommitted();
 			var choosingLocation = tmpl.createChanceNode("MaybeActivating");
@@ -254,6 +275,9 @@ operation UATS!Node getRates() : Sequence
 @cached
 operation UATS!Node getProbability()
 {
+		/*PERK*/
+		System.out.println("ETL>expBE UATS!Node -> List | UATS!Node getProbability() ");
+
 		var attributes = UATV!Attribute.allInstances().select(n | n.node.id == self.id);
 		var delayAttrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!ProbabilityPurpose));
 		var expAttrs = delayAttrs.select(a | a.eContainer.purpose.probType = UATV!ProbabilityType#COMPLETION);

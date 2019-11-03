@@ -6,6 +6,9 @@ rule votingGate
 	{
 		guard : node.connector.isKindOf(UATS!AND) or node.connector.isKindOf(UATS!OR) or node.connector.isKindOf(UATS!KofN)
 
+		/*PERK*/
+		System.out.println("ETL>votingGate UATS!Node -> List : node = " + node.label );
+
 		var tmpl = new Uppaal!Template();
 		tmpl.name = "gate_" + node.id;
 		tmpl.declarations = new Uppaal!LocalDeclarations();

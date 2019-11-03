@@ -3,6 +3,8 @@
 	<name>UPPAAL-trace-parser</name>
 	<comment></comment>
 	<projects>
+		<project>org.muml.uppaal</project>
+		<project>UMMAAL_trace_schedule</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

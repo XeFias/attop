@@ -12,6 +12,8 @@ rule TimeBoundedBE
 					   or (a.eContainer.purpose.isKindOf(UATV!CostPurpose) and a.value.value.asString().startsWith("Infinity"))
 					)
 			    ).size() = 0
+		/*PERK*/
+		System.out.println("TimeBoundedBE UATS!Node -> List");
 		
 		var sigExpr = createVariable("complete").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
 		var activateVar = createVariable("activate").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
@@ -55,11 +57,13 @@ rule TimeBoundedBE
 			var abortLocation = tmpl.createLocation("Aborting").makeUrgent();
 			var activationEdge = tmpl.createEdge(initLocation, iLocation).setSync(activateVar, false).resetClock(timeVar);
 			var otherEdge = tmpl.createEdge(iLocation, activeLocation);
+			/*PERK*/
 			/*var incrementer = createAssignmentExpr(
 					createVariable("cost").createReferringExpression(),
 				    createLiteralExpression(aCost.asInteger().asString())
 			);
 			incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;*/ //The "+=" operator is not supported by Jacco's trace parser, so I rewrote the expression explicitly
+			
 			var costVar = createVariable("cost");
 			var incrementer = createAssignmentExpr(
 				costVar.createReferringExpression(),

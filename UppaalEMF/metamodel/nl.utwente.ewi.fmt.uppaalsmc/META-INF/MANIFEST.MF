@@ -15,6 +15,6 @@ Export-Package: nl.utwente.ewi.fmt,
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.emf.ecore;visibility:=reexport,
  org.eclipse.emf.ecore.xmi;visibility:=reexport,
- org.muml.uppaal;bundle-version="0.5.0";visibility:=reexport,
+ org.muml.uppaal;bundle-version="1.0.0";visibility:=reexport,
  org.muml.uppaal.serialization;bundle-version="0.5.0"
 Bundle-ActivationPolicy: lazy

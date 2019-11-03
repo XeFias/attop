@@ -8,5 +8,7 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="lib" path="antlr-binaries/antlr-4.5.2-complete.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/org.muml.uppaal"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/nl.utwente.ewi.fmt.uppaalsmc"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

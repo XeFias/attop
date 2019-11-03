@@ -8,6 +8,8 @@ import "SeqVotGate.etl";
 import "maintenanceModule.etl";
 
 pre {
+	/*PERK*/
+	System.out.println("UATMM2Uppaal.etl:pre");
 	var idToSignalNum : Map = new Map();
 	var idToGateSignalNum : Map = new Map();
 	var nodeId2LeafId : Map;
@@ -39,6 +41,8 @@ rule Base
 	transform at : UATS!AttackTree
 	to out : Uppaal!NSTA
 	{
+		/*PERK*/
+		System.out.println("ETL>Base UATS!AttackTree -> Uppaal!NSTA");
 		var intId = 0;
 		var leafId = 0;
 		var gateId = 0;
@@ -181,6 +185,7 @@ rule Base
 		
 		//Declare the other domains, with respective initialization values
 		for ( d in domains ) {
+			System.out.println("B_______________________ = " + d);
 			var str_d = d.replaceAll("\\d","");
 			if (specialDomains.contains(str_d))
 				continue;

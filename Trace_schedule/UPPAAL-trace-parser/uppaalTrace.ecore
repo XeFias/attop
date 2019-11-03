@@ -9,21 +9,21 @@
   </eAnnotations>
   <eClassifiers xsi:type="ecore:EClass" name="TemplateInstance">
     <eStructuralFeatures xsi:type="ecore:EReference" name="template" lowerBound="1"
-        eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//templates/Template"/>
+        eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//templates/Template"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="locations" upperBound="-1"
         eType="#//LocationInstance" containment="true" eOpposite="#//LocationInstance/template"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="LocationInstance">
     <eStructuralFeatures xsi:type="ecore:EReference" name="location" lowerBound="1"
-        eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//templates/Location"/>
+        eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//templates/Location"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="template" lowerBound="1"
         eType="#//TemplateInstance" eOpposite="#//TemplateInstance/locations"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Valuation">
     <eStructuralFeatures xsi:type="ecore:EReference" name="variable" lowerBound="1"
-        eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//declarations/Variable"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//types/Type"/>
+        eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//declarations/Variable"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="type" eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//types/Type"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" lowerBound="1" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="value" lowerBound="1" eType="#//value/Value"
         containment="true"/>
@@ -47,7 +47,7 @@
   <eClassifiers xsi:type="ecore:EClass" name="Trace">
     <eStructuralFeatures xsi:type="ecore:EReference" name="states" upperBound="-1"
         eType="#//State" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="NSTA" lowerBound="1" eType="ecore:EClass http://fmt.ewi.utwente.nl/FMT/AFTModel/uppaalSMC#//NSTA"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="NSTA" lowerBound="1" eType="ecore:EClass platform:/resource/nl.utwente.ewi.fmt.uppaalsmc/model/uppaalSMC.ecore#//NSTA"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="transitions" upperBound="-1"
         eType="#//transitions/AbstractTransition" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="templates" upperBound="-1"
@@ -87,7 +87,7 @@
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="DataVariableDeclarationValuation">
       <eStructuralFeatures xsi:type="ecore:EReference" name="dataVariableDeclaration"
-          eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//declarations/DataVariableDeclaration"/>
+          eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//declarations/DataVariableDeclaration"/>
       <eStructuralFeatures xsi:type="ecore:EReference" name="valuation" upperBound="-1"
           eType="#//Valuation" containment="true"/>
     </eClassifiers>
@@ -134,7 +134,7 @@
     </eClassifiers>
     <eClassifiers xsi:type="ecore:EClass" name="EdgeTransition" eSuperTypes="#//transitions/AbstractTransition">
       <eStructuralFeatures xsi:type="ecore:EReference" name="edges" upperBound="-1"
-          eType="ecore:EClass http://www.muml.org/uppaal/visuals/1.0.0#//templates/Edge"/>
+          eType="ecore:EClass platform:/resource/org.muml.uppaal/model/uppaal.ecore#//templates/Edge"/>
     </eClassifiers>
   </eSubpackages>
 </ecore:EPackage>

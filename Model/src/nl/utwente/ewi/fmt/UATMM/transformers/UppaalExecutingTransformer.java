@@ -14,12 +14,14 @@ import nl.utwente.ewi.fmt.UATMM.standalone.Language;
 public class UppaalExecutingTransformer implements ITransformer
 {
 	private static final String[] POSSIBLE_UPPAAL_LOCATIONS = new String[] {
+		"/home/pavlov/apps/uppaal64-4.1.19/bin-Linux/verifyta",
 		"/home/enno/twente/Uppaal/uppaal64-4.1.19/bin-Linux/verifyta",
 		"/home/ruijtersejj/uppaal64-4.1.19/bin-Linux/verifyta",
 		"/local/schivos/Programmi/uppaal64-4.1.19/bin-Linux/verifyta",
 		"./verifyta"
 	};
 	private static final String[] POSSIBLE_UPPAAL_CORA_LOCATIONS = new String[] {
+			"/home/pavlov/apps/uppaal-cora-060910/bin-Linux/verifyta",
 			"/home/enno/twente/Uppaal/uppaal-cora-060910/bin-Linux/verifyta",
 			"./verifyfa"
 	};
