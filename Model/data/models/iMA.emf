@@ -1,5 +1,5 @@
-@namespace(uri="interimAutomaton", prefix="interimAutomaton")
-package interimAutomaton;
+@namespace(uri="iMA", prefix="iMA")
+package iMA;
 
 class InterimAutomaton {
   val State[*] nodes;
