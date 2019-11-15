@@ -76,7 +76,7 @@ public class UAT2IMA extends EpsilonTransformer {
 	public Map<Language, String> getTransformations() {
 		Map<Language, String> ret = new HashMap<Language, String>();
 		//ret.put(Language.IMA, "transformations/UAT2IMAXML.eol");
-		ret.put(Language.IMA, "transformations/UAT2IMAXML.egl");
+		ret.put(Language.IMA, "transformations/UAT2IMA.egl");
 		return ret;
 	}
 /*
