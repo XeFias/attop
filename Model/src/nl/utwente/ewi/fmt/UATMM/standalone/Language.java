@@ -7,7 +7,8 @@ import java.util.TreeMap;
 import org.eclipse.emf.ecore.EPackage;
 
 import UMMAALScheduleSimple.UMMAALScheduleSimplePackage;
-import interimAutomaton.InterimAutomatonPackage;
+// TODO Perk select ecore or generated code?
+//import interimAutomaton.InterimAutomatonPackage;
 import nl.utwente.ewi.fmt.UATMM.UATMM_structure.UATMM_structurePackage;
 import nl.utwente.ewi.fmt.UATMM.UATMM_values.UATMM_valuesPackage;
 import nl.utwente.ewi.fmt.UATMM.Maintenance.MaintenancePackage;
