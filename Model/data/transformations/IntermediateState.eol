@@ -1,0 +1,101 @@
+/******************************************************************************
+*  Operations manipulate state
+******************************************************************************/
+
+/* A State is a consists out of two maps. Each map associates a node to a 
+ * status value. The first map contains all the BEs. 
+ * The second map contains all the Gates.
+*/
+operation constructInitialState(
+			name:String, 
+			nodes:Set(UATS!Node), 
+			BEs:Set(UATS!Node)) 
+		: CADP_autXML!State {
+	var gates : OrderedSet = nodes.clone();
+	gates.removeAll(BEs);
+	
+	var s0 : CADP_autXML!State = new CADP_autXML!State;
+	s0.name = name;
+	
+	var BEsStatuses: Map;
+	var GatesStatuses: Map;
+	for (be in BEs) {
+		var id : String = be.id;
+		id.~nodeRef = be; 
+		s0.bes.put(id, CADP_autXML!StatusType#OPERATIONAL);
+	}
+	for (gate in gates) {
+		var id : String = gate.id;
+		id.~nodeRef = gate; 
+		s0.gates.put(id, CADP_autXML!StatusType#OPERATIONAL);
+	}
+	return s0;
+}
+
+operation status2Str(i) : String {
+	switch (i) {
+	 case CADP_autXML!StatusType#OPERATIONAL: return "O";
+	 case CADP_autXML!StatusType#SUCCESS	: return "S";
+	 case CADP_autXML!StatusType#FAILED		: return "F";
+	 case CADP_autXML!StatusType#SAFE		: return "SF";
+	 case CADP_autXML!StatusType#DONTCARE	: return "X";
+	 default : throw "Error! intToStatus(" + i +") out of range.";
+	}
+}
+
+operation CADP_autXML!State printState() {
+
+	"(".print();
+	var BEs = self.bes;
+	var stateStr = "";
+	for ( be in BEs.keySet() ) {
+		stateStr += ""+(be + ":" + status2Str(BEs.get(be)) + ",");
+	}
+	stateStr = stateStr.substring(0, stateStr.length()-1);
+	stateStr += "||";
+	for ( gate in self.gates.keySet() ) {
+		stateStr += ""+(gate + ":" + status2Str(self.gates.get(gate)) + ",");
+	}
+	stateStr = stateStr.substring(0, stateStr.length()-1);
+	(stateStr + ") = " + self.name).println();
+} 
+
+operation CADP_autXML!State copyState( newName:String )
+		: CADP_autXML!State {
+	var newState = self.copyState();
+	newState.name = newName;
+	return newState;
+}
+
+operation CADP_autXML!State copyState()
+		: CADP_autXML!State {
+	var s : CADP_autXML!State = new CADP_autXML!State;
+	for ( key in self.bes.keySet() ){
+		var value = self.bes.get(key);
+		s.bes.put(key, value);
+	}
+	var gates : CADP_autXML!StringToStatusTypeMap;
+	for ( key in self.gates.keySet() ){
+		var value = self.gates.get(key);
+		s.gates.put(key, value);
+	}
+	s.name = self.name;
+	return s;
+}
+
+operation CADP_autXML!State getNodeStatus( node:UATS!Node ) {
+	if (self.bes.containsKey(node.id)) {
+		return self.bes.get(node.id);
+	} else {
+		return self.gates.get(node.id);
+	}
+}
+
+operation CADP_autXML!State setNodeStatus( node:UATS!Node, value ) {
+	if (self.bes.containsKey(node.id)) {
+		return self.bes.put(node.id,value);
+	} else {
+		return self.gates.put(node.id,value);
+	}
+}
+/**********************************EOF****************************************/

@@ -19,7 +19,8 @@ Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.epsilon.etl.engine,
  org.eclipse.epsilon.evl.engine,
  org.eclipse.emf.common,
- org.eclipse.xtext.xbase.lib;bundle-version="2.14.0"
+ org.eclipse.xtext.xbase.lib;bundle-version="2.14.0",
+ org.ou.INAUT
 Bundle-ActivationPolicy: lazy
 Import-Package: UMMAALScheduleSimple,
  nl.utwente.ewi.fmt.uppaalSMC,

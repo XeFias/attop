@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:description="http://www.eclipse.org/sirius/description/1.1.0" xmlns:description_1="http://www.eclipse.org/sirius/diagram/description/1.1.0" xmlns:diagram="http://www.eclipse.org/sirius/diagram/1.1.0" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmlns:notation="http://www.eclipse.org/gmf/runtime/1.0.2/notation" xmlns:style="http://www.eclipse.org/sirius/diagram/description/style/1.1.0" xmlns:viewpoint="http://www.eclipse.org/sirius/1.1.0" xsi:schemaLocation="http://www.eclipse.org/sirius/description/1.1.0 http://www.eclipse.org/sirius/1.1.0#//description http://www.eclipse.org/sirius/diagram/description/1.1.0 http://www.eclipse.org/sirius/diagram/1.1.0#//description http://www.eclipse.org/sirius/diagram/description/style/1.1.0 http://www.eclipse.org/sirius/diagram/1.1.0#//description/style">
-  <viewpoint:DAnalysis xmi:id="_4-2XQOBcEeWF__QlvodK4Q" selectedViews="_TPs_QBXvEeaEDdcR2skgKA _TP7BsBXvEeaEDdcR2skgKA _TP-sEBXvEeaEDdcR2skgKA _TQIdEBXvEeaEDdcR2skgKA" version="12.0.0.201704271200">
+  <viewpoint:DAnalysis xmi:id="_4-2XQOBcEeWF__QlvodK4Q" selectedViews="_TPs_QBXvEeaEDdcR2skgKA _TP7BsBXvEeaEDdcR2skgKA _TP-sEBXvEeaEDdcR2skgKA _TQIdEBXvEeaEDdcR2skgKA" version="12.1.0.201708031200">
     <semanticResources>http://www.eclipse.org/emf/2002/Ecore</semanticResources>
     <semanticResources>data/models/UATMM_structure.ecore</semanticResources>
     <semanticResources>data/models/UATMM_structure.genmodel</semanticResources>
@@ -11,17 +11,18 @@
     <semanticResources>platform:/resource/UppaalSMC/model/uppaalSMC.ecore</semanticResources>
     <semanticResources>platform:/resource/org.muml.uppaal/model/uppaal.ecore</semanticResources>
     <semanticResources>data/models/Query.ecore</semanticResources>
+    <semanticResources>data/models/InterimAutomaton.ecore</semanticResources>
     <ownedViews xmi:type="viewpoint:DView" xmi:id="_TPs_QBXvEeaEDdcR2skgKA">
       <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']"/>
-      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_q7NTYmxMEeemK7dxvPVIDg" name="UATMM_structure class diagram" repPath="#_KCBrUEdeEeajfKl4iLUBVw">
+      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_q7NTYmxMEeemK7dxvPVIDg" name="UATMM_structure class diagram" repPath="#_l50U0AYXEeqb38zsiydkEw">
         <description xmi:type="description_1:DiagramDescription" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']"/>
         <target xmi:type="ecore:EPackage" href="data/models/UATMM_structure.ecore#/"/>
       </ownedRepresentationDescriptors>
-      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_q7N6cWxMEeemK7dxvPVIDg" name="UATMM_values class diagram" repPath="#_vKs_YEdkEeajfKl4iLUBVw">
+      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_q7N6cWxMEeemK7dxvPVIDg" name="UATMM_values class diagram" repPath="#_l8dZIAYXEeqb38zsiydkEw">
         <description xmi:type="description_1:DiagramDescription" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']"/>
         <target xmi:type="ecore:EPackage" href="data/models/UATMM_values.ecore#/"/>
       </ownedRepresentationDescriptors>
-      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_BNCdEGxVEeeD0MUKJ0dVeQ" name="Query class diagram" repPath="#_BNBO8GxVEeeD0MUKJ0dVeQ">
+      <ownedRepresentationDescriptors xmi:type="viewpoint:DRepresentationDescriptor" xmi:id="_BNCdEGxVEeeD0MUKJ0dVeQ" name="Query class diagram" repPath="#_l81zoAYXEeqb38zsiydkEw">
         <description xmi:type="description_1:DiagramDescription" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Design']/@ownedRepresentations[name='Entities']"/>
         <target xmi:type="ecore:EPackage" href="data/models/Query.ecore#/"/>
       </ownedRepresentationDescriptors>
@@ -36,7 +37,7 @@
       <viewpoint xmi:type="description:Viewpoint" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Generation']"/>
     </ownedViews>
   </viewpoint:DAnalysis>
-  <diagram:DSemanticDiagram xmi:id="_KCBrUEdeEeajfKl4iLUBVw" name="UATMM_structure class diagram">
+  <diagram:DSemanticDiagram xmi:id="_KCBrUEdeEeajfKl4iLUBVw" name="UATMM_structure class diagram" uid="_l50U0AYXEeqb38zsiydkEw">
     <ownedAnnotationEntries xmi:type="description:AnnotationEntry" xmi:id="_KCBrUUdeEeajfKl4iLUBVw" source="DANNOTATION_CUSTOMIZATION_KEY">
       <data xmi:type="diagram:ComputedStyleDescriptionRegistry" xmi:id="_KCBrUkdeEeajfKl4iLUBVw">
         <computedStyleDescriptions xmi:type="style:BundledImageDescription" xmi:id="_MMf-0EdeEeajfKl4iLUBVw" labelExpression="service:render" labelAlignment="LEFT" tooltipExpression="service:renderTooltip" sizeComputationExpression="1">
@@ -1202,7 +1203,7 @@
     <activatedLayers xmi:type="description_1:AdditionalLayer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Archetype']/@ownedRepresentationExtensions[name='Entities%20With%20Archetypes']/@layers[name='Archetypes']"/>
     <target xmi:type="ecore:EPackage" href="data/models/UATMM_structure.ecore#/"/>
   </diagram:DSemanticDiagram>
-  <diagram:DSemanticDiagram xmi:id="_vKs_YEdkEeajfKl4iLUBVw" name="UATMM_values class diagram">
+  <diagram:DSemanticDiagram xmi:id="_vKs_YEdkEeajfKl4iLUBVw" name="UATMM_values class diagram" uid="_l8dZIAYXEeqb38zsiydkEw">
     <ownedAnnotationEntries xmi:type="description:AnnotationEntry" xmi:id="_vKs_YUdkEeajfKl4iLUBVw" source="DANNOTATION_CUSTOMIZATION_KEY">
       <data xmi:type="diagram:ComputedStyleDescriptionRegistry" xmi:id="_vKs_YkdkEeajfKl4iLUBVw">
         <computedStyleDescriptions xmi:type="style:BundledImageDescription" xmi:id="_wcNDgEdkEeajfKl4iLUBVw" labelExpression="service:render" labelAlignment="LEFT" tooltipExpression="service:renderTooltip" sizeComputationExpression="1">
@@ -1959,7 +1960,7 @@
     <activatedLayers xmi:type="description_1:AdditionalLayer" href="platform:/plugin/org.eclipse.emf.ecoretools.design/description/ecore.odesign#//@ownedViewpoints[name='Archetype']/@ownedRepresentationExtensions[name='Entities%20With%20Archetypes']/@layers[name='Archetypes']"/>
     <target xmi:type="ecore:EPackage" href="data/models/UATMM_values.ecore#/"/>
   </diagram:DSemanticDiagram>
-  <diagram:DSemanticDiagram xmi:id="_BNBO8GxVEeeD0MUKJ0dVeQ" name="Query class diagram">
+  <diagram:DSemanticDiagram xmi:id="_BNBO8GxVEeeD0MUKJ0dVeQ" name="Query class diagram" uid="_l81zoAYXEeqb38zsiydkEw">
     <ownedAnnotationEntries xmi:type="description:AnnotationEntry" xmi:id="_BNBO8WxVEeeD0MUKJ0dVeQ" source="DANNOTATION_CUSTOMIZATION_KEY">
       <data xmi:type="diagram:ComputedStyleDescriptionRegistry" xmi:id="_BNBO8mxVEeeD0MUKJ0dVeQ">
         <computedStyleDescriptions xmi:type="style:BundledImageDescription" xmi:id="_D7p_cWxVEeeD0MUKJ0dVeQ" labelExpression="service:render" labelAlignment="LEFT" tooltipExpression="service:renderTooltip" sizeComputationExpression="1">

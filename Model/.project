@@ -4,6 +4,7 @@
 	<comment></comment>
 	<projects>
 		<project>nl.utwente.ewi.fmt.uppaalsmc</project>
+		<project>org.ou.INAUT</project>
 		<project>UppaalSMC</project>
 	</projects>
 	<buildSpec>

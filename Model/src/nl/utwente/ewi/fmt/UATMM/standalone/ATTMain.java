@@ -12,6 +12,7 @@ import nl.utwente.ewi.fmt.UATMM.transformers.*;
 
 public class ATTMain {
 	private static final ITransformer[] transformers = new ITransformer[] {
+		UAT2IMA.instance(),
 		UAT2Uppaal.instance(),
 		Uppaal2XML.instance(),
 		ADTool2UAT.sINSTANCE,

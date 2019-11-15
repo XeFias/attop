@@ -1,0 +1,51 @@
+import "IntermediateIterator.eol";
+import "IntermediateState.eol";
+
+
+operation generateIntermediateAutomata( 
+			attackTree:UATS!AttackTree, 
+			rootNode:UATS!Node ) 
+		: CADP_autXML!State {
+	"_________".println();
+	// Assotiate Gates to graph height (from bottom to top) and depth (from top to bottom)  
+	var nodes	: Set(UATS!Node) = attackTree.Nodes;
+	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
+	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
+	var topDown	: Sequence(UATS!Node) = fromLevelMapToSequence(calculateDepthOfGates(rootNode));
+	
+	var bottomUpIterator = createIterator(bottomUp);
+	var topDownIterator = createIterator(topDown);
+
+	var state = constructInitialState("state0", nodes, BEs);
+	var state1 = state.copyState("state1");
+
+	var node = nodes.random();
+	state1.setNodeStatus(node, CADP_autXML!StatusType#FAILED);
+
+	var key = state1.bes.keySet().first();
+	key.~nodeRef.id.println();
+	
+	var d1 : CADP_autXML!Disruption = new CADP_autXML!Disruption;
+	d1.source = state;
+	d1.target = state1;
+
+	var d2 : CADP_autXML!Disruption = new CADP_autXML!Disruption;
+	d2.source = state1;
+	d2.target = state;
+	
+	// TODO: Perk, also return final state which should be (FAILED) 	
+	return state;
+}
+
+operation fromLevelMapToSequence( 
+			levelMap:Map(UATS!Node,Sequence) ) 
+		: Sequence(UATS!Node) {
+	var nbrOfLevels =  levelMap.values().max();
+	var inversMap = inverseMapRelation(levelMap);
+	var order = Sequence {};
+	for (level in 1.to(nbrOfLevels)){
+		order += inversMap.get(level);
+	}
+	return order;
+}
+/**********************************EOF****************************************/

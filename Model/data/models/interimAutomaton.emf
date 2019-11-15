@@ -1,0 +1,33 @@
+@namespace(uri="interimAutomaton", prefix="interimAutomaton")
+package interimAutomaton;
+
+class InterimAutomaton {
+  val State[*] nodes;
+}
+
+class State {
+  attr String name;
+  val Disruption#source outgoing;
+  ref Disruption[*]#target incoming;
+  val StringToStatusTypeMap[*] bes;
+  val StringToStatusTypeMap[*] gates;
+}
+
+class Disruption {
+  ref State#outgoing source;
+  ref State#incoming target;
+}
+
+class StringToStatusTypeMap : java.util.Map$Entry {
+  attr StatusType value = "OPERATIONAL";
+  attr String key = "";
+}
+
+enum StatusType {
+  OPERATIONAL = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+  SAFE = 3;
+  DONTCARE = 4;
+}
+

@@ -7,6 +7,7 @@ import java.util.TreeMap;
 import org.eclipse.emf.ecore.EPackage;
 
 import UMMAALScheduleSimple.UMMAALScheduleSimplePackage;
+import interimAutomaton.InterimAutomatonPackage;
 import nl.utwente.ewi.fmt.UATMM.UATMM_structure.UATMM_structurePackage;
 import nl.utwente.ewi.fmt.UATMM.UATMM_values.UATMM_valuesPackage;
 import nl.utwente.ewi.fmt.UATMM.Maintenance.MaintenancePackage;
@@ -53,6 +54,13 @@ public enum Language {
 	UPPAAL_TRACE("UPPAALTrace", UppaalTracePackage.eINSTANCE),
 	/** (Generic) Schedule model */
 	SCHEDULE("Schedule", UMMAALScheduleSimplePackage.eINSTANCE),
+	/* Intermediate Monolithic Automata*/
+	IMA("IMA"),
+	/* CADP markov automata*/
+	CADP_AUT("CADP_aut"),
+    //CADP_AUT_XML("CADP_autXML", "/home/pavlov/proj/attop/eclipse-workspace/org.ou.INAUT/model/interimAutomaton.ecore");
+    CADP_AUT_XML("CADP_autXML", "data/models/interimAutomaton.ecore");
+	//CADP_AUT_XML("CADP_autXML", InterimAutomatonPackage.eINSTANCE);
 	;
 	
 	private final String name;

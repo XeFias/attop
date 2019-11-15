@@ -1,0 +1,154 @@
+/******************************************************************************
+*  Operations manipulate Iterators
+******************************************************************************/
+
+// TODO: Perk return type is of mixed sequence 
+operation 
+	createIterator( sequence:Sequence(UATS!Node) ) 
+		: Sequence(Sequence(UATS!Node), Sequence(Integer)){
+	return Sequence{sequence, Sequence{-1}};
+}
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	copyIterator() 
+		: Sequence(Sequence(UATS!Node), Sequence(Integer)) {
+	return Sequence{ self.first(), Sequence{self.second().first} };
+} 
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	hasNext() 
+		: Boolean {
+	return ( self.second().first() < self.first().size() - 1 );
+} 
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	next() 
+		: UATS!Node {
+	var newIdx = self.second().first() + 1;
+	var next = self.first().at(newIdx);
+	self.second().clear();
+	self.second().add(newIdx);
+	return next;
+}
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	printIterator() {
+	
+	"(".print();
+	var gates = self.first();
+	var stateStr = "";
+	for ( gate in gates ) {
+		stateStr += ""+ gate.id + ",";
+	}
+	stateStr = stateStr.substring(0, stateStr.length()-1);
+	(stateStr + "|" + self.second().first() + ")").println();
+}
+
+/******************************************************************************
+*  Operations to build iterators from AttackTree.
+******************************************************************************/
+
+operation addToMapOfArray( 
+			map:Map, 
+			key:UATS!Node, 
+			height:Integer ) 
+		: Map(UATS!Node, Sequence(Integer)){
+	var values : Sequence = Sequence {};
+	
+	if (map.containsKey(key)) {
+		values = map.get(key);
+	} else {
+		map.put(key, values);
+		values = map.get(key);
+	}
+	values.add(height);
+	return map;
+}
+
+// Associate Gates to depth starting from Root 
+operation calculateDepthOfGates(root:UATS!Node )
+		: Map(UATS!Node, Integer) {
+	var depthMap : Map;
+	
+	var children : OrderedSet = root.children;
+	depthMap = addToMapOfArray( depthMap, root, 1);
+	for (child in children) {
+		depthMap = calculateDepthOfGatesFromRoot(root, depthMap, 2);
+	}
+	var depthOfGate : Map;
+	// Select maximum depth as depth for gates 
+	for (gateDepthKey in depthMap.keySet()) {
+		var maxDepth = depthMap.get(gateDepthKey).max();
+		depthOfGate.put(gateDepthKey, maxDepth);
+	}
+	//var inverseMap : Map = inverseMapRelation(depthOfGate);
+	return depthOfGate;
+}
+
+// Recursively associate Gates to Depth. 
+operation calculateDepthOfGatesFromRoot( 
+			node:UATS!Node, 
+			depthMap:Map, 
+			depth:Integer )
+		: Map(UATS!Node, Sequence(Integer)) {
+	var children:OrderedSet = node.children;
+	for (c in children) {
+		// Do not add BAS leafs
+		if( c.children.size > 0 ) {
+			depthMap = addToMapOfArray(depthMap, c, depth);
+			depthMap = calculateDepthOfGatesFromRoot(c, depthMap, depth+1);
+		}
+	}
+	return depthMap;
+}
+
+// Associate Gates to height starting from BASs 
+operation calculateHeightOfGates(BEs:Set(UATS!Node)): Map {
+	var heightMap : Map;
+	for (be:UATS!Node in BEs) {
+		heightMap = calculateHeightOfGatesFromBAS(be, heightMap, 1);
+	}
+	var heightOfGate : Map;
+	// Select maximum height as height for gates 
+	for (gateHeightKey in heightMap.keySet()) {
+		var maxHeight = heightMap.get(gateHeightKey).max();
+		heightOfGate.put(gateHeightKey, maxHeight);
+	}
+	//var inverseMap : Map = inverseMapRelation(heightOfGate);
+	return heightOfGate;
+}
+
+// PERK: ik Ben hier met type informatie
+// Recursively associate Gates to Height. 
+operation calculateHeightOfGatesFromBAS(
+			node:UATS!Node, 
+			heightMap:Map(UATS!Node,Sequence),
+			height:Integer) 
+		: Map(UATS!Node,Sequence(Integer)) {
+	var parents = node.parents;
+	for (p in parents) {
+		heightMap = addToMapOfArray(heightMap, p, height);
+		heightMap = calculateHeightOfGatesFromBAS(p, heightMap, height+1);
+	}
+	return heightMap;
+}
+
+// Inverse relation from Key -> Value to Value -> Set of Values
+// In other words, collect Gates per Level.
+operation inverseMapRelation(
+			map:Map(UATS!Node,Sequence(Integer)))
+		: Map(Integer,UATS!Node) {
+	var inverseMap: Map(Integer,UATS!Node);
+	for (key in map.keySet()) {
+		var value = map.get(key);
+		if ( not inverseMap.containsKey(value) ){
+			var gateCollection : Set;
+			gateCollection.add(key);
+			inverseMap.put(value, gateCollection);
+		} else {
+			inverseMap.get(value).add(key);
+		}
+	}
+	return inverseMap;
+}
+/**********************************EOF****************************************/
