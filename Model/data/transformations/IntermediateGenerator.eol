@@ -5,7 +5,7 @@ import "IntermediateState.eol";
 operation generateIntermediateAutomata( 
 			attackTree:UATS!AttackTree, 
 			rootNode:UATS!Node ) 
-		: CADP_autXML!State {
+		: IMA!State {
 	"_________".println();
 	// Assotiate Gates to graph height (from bottom to top) and depth (from top to bottom)  
 	var nodes	: Set(UATS!Node) = attackTree.Nodes;
@@ -20,16 +20,16 @@ operation generateIntermediateAutomata(
 	var state1 = state.copyState("state1");
 
 	var node = nodes.random();
-	state1.setNodeStatus(node, CADP_autXML!StatusType#FAILED);
+	state1.setNodeStatus(node, IMA!StatusType#FAILED);
 
 	var key = state1.bes.keySet().first();
 	key.~nodeRef.id.println();
 	
-	var d1 : CADP_autXML!Disruption = new CADP_autXML!Disruption;
+	var d1 : IMA!Disruption = new IMA!Disruption;
 	d1.source = state;
 	d1.target = state1;
 
-	var d2 : CADP_autXML!Disruption = new CADP_autXML!Disruption;
+	var d2 : IMA!Disruption = new IMA!Disruption;
 	d2.source = state1;
 	d2.target = state;
 	

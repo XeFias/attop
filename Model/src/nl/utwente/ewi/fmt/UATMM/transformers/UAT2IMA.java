@@ -46,7 +46,7 @@ public class UAT2IMA extends EpsilonTransformer {
 	
 	/** Constructor for the singleton instance of this transformer. */
 	private UAT2IMA() {
-		super(Arrays.asList(new Language[]{Language.UATS, Language.UATV}), Arrays.asList(new Language[]{Language.CADP_AUT_XML}));
+		super(Arrays.asList(new Language[]{Language.UATS, Language.UATV}), Arrays.asList(new Language[]{Language.IMA}));
 	}
 
 	@Override
@@ -67,7 +67,7 @@ public class UAT2IMA extends EpsilonTransformer {
 		}
 		//String outputFile = outputs.get(output);
 		//String outputFile = "/home/pavlov/proj/playground/galileo2CAPDaut/AUT.xml";
-		//out.add(createPlainXmlModel(Language.CADP_AUT_XML, Role.TARGET, outputFile));
+		//out.add(createPlainXmlModel(Language.IMA, Role.TARGET, outputFile));
 		out.add(createEmfModel(output, Role.TARGET, outputs.get(output)));
 		return out;
 	}
@@ -75,14 +75,14 @@ public class UAT2IMA extends EpsilonTransformer {
 	@Override
 	public Map<Language, String> getTransformations() {
 		Map<Language, String> ret = new HashMap<Language, String>();
-		//ret.put(Language.CADP_AUT_XML, "transformations/UAT2IMAXML.eol");
-		ret.put(Language.CADP_AUT_XML, "transformations/UAT2IMAXML.egl");
+		//ret.put(Language.IMA, "transformations/UAT2IMAXML.eol");
+		ret.put(Language.IMA, "transformations/UAT2IMAXML.egl");
 		return ret;
 	}
 /*
 	@Override
 	public Object execute(Map<String, Language> inputs, Map<Language, String> outputs) throws Exception {
-		String outputPath = outputs.get(Language.CADP_AUT_XML);
+		String outputPath = outputs.get(Language.IMA);
 		Object result = super.execute(inputs, outputs);
 		try (Writer writer = new BufferedWriter(new OutputStreamWriter(
 				new FileOutputStream(outputPath), "utf-8"))) {

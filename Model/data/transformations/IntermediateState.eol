@@ -10,11 +10,11 @@ operation constructInitialState(
 			name:String, 
 			nodes:Set(UATS!Node), 
 			BEs:Set(UATS!Node)) 
-		: CADP_autXML!State {
+		: IMA!State {
 	var gates : OrderedSet = nodes.clone();
 	gates.removeAll(BEs);
 	
-	var s0 : CADP_autXML!State = new CADP_autXML!State;
+	var s0 : IMA!State = new IMA!State;
 	s0.name = name;
 	
 	var BEsStatuses: Map;
@@ -22,28 +22,28 @@ operation constructInitialState(
 	for (be in BEs) {
 		var id : String = be.id;
 		id.~nodeRef = be; 
-		s0.bes.put(id, CADP_autXML!StatusType#OPERATIONAL);
+		s0.bes.put(id, IMA!StatusType#OPERATIONAL);
 	}
 	for (gate in gates) {
 		var id : String = gate.id;
 		id.~nodeRef = gate; 
-		s0.gates.put(id, CADP_autXML!StatusType#OPERATIONAL);
+		s0.gates.put(id, IMA!StatusType#OPERATIONAL);
 	}
 	return s0;
 }
 
 operation status2Str(i) : String {
 	switch (i) {
-	 case CADP_autXML!StatusType#OPERATIONAL: return "O";
-	 case CADP_autXML!StatusType#SUCCESS	: return "S";
-	 case CADP_autXML!StatusType#FAILED		: return "F";
-	 case CADP_autXML!StatusType#SAFE		: return "SF";
-	 case CADP_autXML!StatusType#DONTCARE	: return "X";
+	 case IMA!StatusType#OPERATIONAL: return "O";
+	 case IMA!StatusType#SUCCESS	: return "S";
+	 case IMA!StatusType#FAILED		: return "F";
+	 case IMA!StatusType#SAFE		: return "SF";
+	 case IMA!StatusType#DONTCARE	: return "X";
 	 default : throw "Error! intToStatus(" + i +") out of range.";
 	}
 }
 
-operation CADP_autXML!State printState() {
+operation IMA!State printState() {
 
 	"(".print();
 	var BEs = self.bes;
@@ -60,21 +60,21 @@ operation CADP_autXML!State printState() {
 	(stateStr + ") = " + self.name).println();
 } 
 
-operation CADP_autXML!State copyState( newName:String )
-		: CADP_autXML!State {
+operation IMA!State copyState( newName:String )
+		: IMA!State {
 	var newState = self.copyState();
 	newState.name = newName;
 	return newState;
 }
 
-operation CADP_autXML!State copyState()
-		: CADP_autXML!State {
-	var s : CADP_autXML!State = new CADP_autXML!State;
+operation IMA!State copyState()
+		: IMA!State {
+	var s : IMA!State = new IMA!State;
 	for ( key in self.bes.keySet() ){
 		var value = self.bes.get(key);
 		s.bes.put(key, value);
 	}
-	var gates : CADP_autXML!StringToStatusTypeMap;
+	var gates : IMA!StringToStatusTypeMap;
 	for ( key in self.gates.keySet() ){
 		var value = self.gates.get(key);
 		s.gates.put(key, value);
@@ -83,7 +83,7 @@ operation CADP_autXML!State copyState()
 	return s;
 }
 
-operation CADP_autXML!State getNodeStatus( node:UATS!Node ) {
+operation IMA!State getNodeStatus( node:UATS!Node ) {
 	if (self.bes.containsKey(node.id)) {
 		return self.bes.get(node.id);
 	} else {
@@ -91,7 +91,7 @@ operation CADP_autXML!State getNodeStatus( node:UATS!Node ) {
 	}
 }
 
-operation CADP_autXML!State setNodeStatus( node:UATS!Node, value ) {
+operation IMA!State setNodeStatus( node:UATS!Node, value ) {
 	if (self.bes.containsKey(node.id)) {
 		return self.bes.put(node.id,value);
 	} else {

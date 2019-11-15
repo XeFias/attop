@@ -55,13 +55,12 @@ public enum Language {
 	UPPAAL_TRACE("UPPAALTrace", UppaalTracePackage.eINSTANCE),
 	/** (Generic) Schedule model */
 	SCHEDULE("Schedule", UMMAALScheduleSimplePackage.eINSTANCE),
-	/* Intermediate Monolithic Automata*/
-	IMA("IMA"),
 	/* CADP markov automata*/
 	CADP_AUT("CADP_aut"),
-    //CADP_AUT_XML("CADP_autXML", "/home/pavlov/proj/attop/eclipse-workspace/org.ou.INAUT/model/interimAutomaton.ecore");
-    CADP_AUT_XML("CADP_autXML", "data/models/interimAutomaton.ecore");
-	//CADP_AUT_XML("CADP_autXML", InterimAutomatonPackage.eINSTANCE);
+	/* Intermediate Monolithic Automata*/
+	//IMA("IMA", "/home/pavlov/proj/attop/eclipse-workspace/org.ou.INAUT/model/interimAutomaton.ecore");
+    IMA("IMA", "data/models/interimAutomaton.ecore");
+	//IMA("IMA", InterimAutomatonPackage.eINSTANCE);
 	;
 	
 	private final String name;
