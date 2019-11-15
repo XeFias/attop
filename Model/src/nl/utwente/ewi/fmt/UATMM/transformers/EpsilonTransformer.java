@@ -260,7 +260,7 @@ public abstract class EpsilonTransformer implements ITransformer {
 			throw e;
 		}
 		if (fileURI == null) {
-			File f = new File("data/" + fileName);
+			File f = new File(fileName);
 			if (f.exists()) {
 				fileURI = f.toURI();
 			} else {
