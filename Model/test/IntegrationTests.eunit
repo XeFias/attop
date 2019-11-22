@@ -1,0 +1,17 @@
+import "../data/transformations/IntermediateGenerator.eol";
+
+@test
+operation integrationTest_DefaultTree(){
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode	: UATS!Node 		= attackTree.Root;
+	var nodes		: Set(UATS!Node) 	= attackTree.Nodes;
+	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
+	var gates 							= nodes.excludingAll(BEs);
+
+	var IMA	 		: Sequence(IMA!State)= generateIntermediateAutomata(attackTree, rootNode);
+	
+	var rootState	: IMA!State = constructInitialState("s0", nodes, rootNode);
+
+	assertEquals(rootState.toString(false), IMA.first().toString(false));
+	// TODO: Perk determine string of expected end state
+}

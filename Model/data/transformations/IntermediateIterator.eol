@@ -3,6 +3,7 @@
 ******************************************************************************/
 
 // TODO: Perk return type is of mixed sequence 
+// (gates|int)
 operation 
 	createIterator( sequence:Sequence(UATS!Node) ) 
 		: Sequence(Sequence(UATS!Node), Sequence(Integer)){
@@ -32,7 +33,27 @@ operation Sequence(Sequence(UATS!Node), Sequence(Integer))
 }
 
 operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	toString() : String {
+	var r:String = "";
+	r = r.concat("(");
+	var gates = self.first();
+	var stateStr = "";
+	for ( gate in gates ) {
+		stateStr += ""+ gate.id + ",";
+	}
+	stateStr = stateStr.substring(0, stateStr.length()-1);
+	r = r.concat(stateStr + "|" + self.second().first() + ")");
+	return r;	
+}
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
 	printIterator() {
+	var t = self.toString();
+	t.println();
+}
+
+operation Sequence(Sequence(UATS!Node), Sequence(Integer))
+	printIterator_Old() {
 	
 	"(".print();
 	var gates = self.first();
@@ -71,10 +92,11 @@ operation calculateDepthOfGates(root:UATS!Node )
 	var depthMap : Map;
 	
 	var children : OrderedSet = root.children;
-	depthMap = addToMapOfArray( depthMap, root, 1);
-	for (child in children) {
-		depthMap = calculateDepthOfGatesFromRoot(root, depthMap, 2);
-	}
+	//depthMap = addToMapOfArray( depthMap, root, 1);
+	//for (child in children) {
+	//	depthMap = calculateDepthOfGatesFromRoot(root, depthMap, 2);
+	//}
+	depthMap = calculateDepthOfGatesFromRoot(root, depthMap, 1);
 	var depthOfGate : Map;
 	// Select maximum depth as depth for gates 
 	for (gateDepthKey in depthMap.keySet()) {
@@ -91,11 +113,12 @@ operation calculateDepthOfGatesFromRoot(
 			depthMap:Map, 
 			depth:Integer )
 		: Map(UATS!Node, Sequence(Integer)) {
+	
+	depthMap = addToMapOfArray( depthMap, node, depth);
 	var children:OrderedSet = node.children;
 	for (c in children) {
 		// Do not add BAS leafs
 		if( c.children.size > 0 ) {
-			depthMap = addToMapOfArray(depthMap, c, depth);
 			depthMap = calculateDepthOfGatesFromRoot(c, depthMap, depth+1);
 		}
 	}
@@ -118,7 +141,6 @@ operation calculateHeightOfGates(BEs:Set(UATS!Node)): Map {
 	return heightOfGate;
 }
 
-// PERK: ik Ben hier met type informatie
 // Recursively associate Gates to Height. 
 operation calculateHeightOfGatesFromBAS(
 			node:UATS!Node, 
@@ -151,4 +173,5 @@ operation inverseMapRelation(
 	}
 	return inverseMap;
 }
+
 /**********************************EOF****************************************/

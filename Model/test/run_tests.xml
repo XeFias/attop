@@ -1,0 +1,67 @@
+<project>
+	<target name="run-tests">
+		<!-- default AT model --> 
+		<epsilon.emf.loadModel name="UATS"
+			modelfile="models/UATS.model"
+			metamodelfile="${basedir}/../data/models/UATMM_structure.ecore"
+			read="true" store="false" />
+		<epsilon.emf.loadModel name="UATV"
+			modelfile="models/UATV.model"
+			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
+			read="true" store="false" /> 
+			
+		<!-- AND model of AT model -->
+		<epsilon.emf.loadModel name="UATS2"
+			modelfile="models/UATS_and.model"
+			metamodelfile="${basedir}/../data/models/UATMM_structure.ecore"
+			read="true" store="false" />
+		<epsilon.emf.loadModel name="UATV2"
+			modelfile="models/UATV_and.model"
+			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
+			read="true" store="false" />
+
+		<epsilon.emf.loadModel name="IMA"
+			modelfile="models/IMA_and.model"
+			metamodelfile="${basedir}/../data/models/iMA.ecore"
+			read="false" store="true" />
+		
+		<epsilon.eunit src="IntegrationTests.eunit">
+			<model ref="UATS" as="UATS"/>
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+
+		<epsilon.eunit src="IteratorTests.eunit">
+			<parameter name="inputModel" value="default"/>
+			<model ref="UATS" as="UATS" />
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+
+		<epsilon.eunit src="IteratorTests.eunit">
+			<parameter name="inputModel" value="AND"/>
+			<model ref="UATS2" as="UATS" />
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+
+		<epsilon.eunit src="StateTests.eunit">
+			<model ref="UATS" as="UATS" />
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+
+		<epsilon.eunit src="BuildAutomatonTests.eunit">
+			<model ref="UATS2" as="UATS" />
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+		<!--
+		<epsilon.eunit src="BuildAutomatonTests.eunit">
+			<model ref="UATS" as="UATS" />
+			<model ref="UATV" as="UATV" />
+			<model ref="IMA" />
+		</epsilon.eunit>
+		-->
+	</target>
+</project>

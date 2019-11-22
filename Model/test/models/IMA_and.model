@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:iMA="iMA">
+  <iMA:State name="rootState" goalGateId="A">
+    <outgoing target="/5" beId="B" newStatus="SUCCESS"/>
+    <outgoing target="/8" beId="C" newStatus="SUCCESS"/>
+    <outgoing target="/11" beId="B" newStatus="FAILED"/>
+    <outgoing target="/14" beId="C" newStatus="FAILED"/>
+    <bes key="C"/>
+    <bes key="B"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State/>
+  <iMA:State name="SUCCESS" goalGateId="A">
+    <bes value="DONTCARE" key="B"/>
+    <bes value="DONTCARE" key="C"/>
+    <gates value="SUCCESS" key="A"/>
+  </iMA:State>
+  <iMA:State/>
+  <iMA:State name="FAIL" goalGateId="A">
+    <bes value="DONTCARE" key="B"/>
+    <bes value="DONTCARE" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/0/@outgoing.0" goalGateId="A">
+    <outgoing target="/6" beId="C" newStatus="SUCCESS"/>
+    <outgoing target="/7" beId="C" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="B"/>
+    <bes key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/5/@outgoing.0" goalGateId="A">
+    <bes value="SUCCESS" key="B"/>
+    <bes value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/5/@outgoing.1" goalGateId="A">
+    <bes value="SUCCESS" key="B"/>
+    <bes value="FAILED" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/0/@outgoing.1" goalGateId="A">
+    <outgoing target="/9" beId="B" newStatus="SUCCESS"/>
+    <outgoing target="/10" beId="B" newStatus="FAILED"/>
+    <bes key="B"/>
+    <bes value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/8/@outgoing.0" goalGateId="A">
+    <bes value="SUCCESS" key="B"/>
+    <bes value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/8/@outgoing.1" goalGateId="A">
+    <bes value="FAILED" key="B"/>
+    <bes value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/0/@outgoing.2" goalGateId="A">
+    <outgoing target="/12" beId="C" newStatus="SUCCESS"/>
+    <outgoing target="/13" beId="C" newStatus="FAILED"/>
+    <bes value="FAILED" key="B"/>
+    <bes key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/11/@outgoing.0" goalGateId="A">
+    <bes value="FAILED" key="B"/>
+    <bes value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/11/@outgoing.1" goalGateId="A">
+    <bes value="FAILED" key="B"/>
+    <bes value="FAILED" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/0/@outgoing.3" goalGateId="A">
+    <outgoing target="/15" beId="B" newStatus="SUCCESS"/>
+    <outgoing target="/16" beId="B" newStatus="FAILED"/>
+    <bes key="B"/>
+    <bes value="FAILED" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/14/@outgoing.0" goalGateId="A">
+    <bes value="SUCCESS" key="B"/>
+    <bes value="FAILED" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="2" incoming="/14/@outgoing.1" goalGateId="A">
+    <bes value="FAILED" key="B"/>
+    <bes value="FAILED" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+</xmi:XMI>

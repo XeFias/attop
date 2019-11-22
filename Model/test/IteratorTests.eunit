@@ -1,0 +1,119 @@
+import "../data/transformations/IntermediateIterator.eol";
+
+@test
+operation HeightPerGate_DefaultTree() {
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var nodes		: Set(UATS!Node) 	= attackTree.Nodes;
+	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
+	// Expected values.
+	var values;
+	if ( inputModel.asString() == "AND" ) { // ANT parameter
+		values = 
+			Map{	"B" = Map { "A" = Bag { 1 } }, 
+					"C" = Map { "A" = Bag { 1 } } };
+	} else {
+		values = 
+			Map{	"D" = Map { "B" = Bag { 1 },
+								"A" = Bag { 2 },
+								"X" = Bag { 3 } }, 
+					"E" = Map { "B" = Bag { 1 },
+								"C" = Bag { 1 },
+								"A" = Bag { 2, 2, 3 },
+								"Y" = Bag { 2 },
+								"X" = Bag { 3, 3, 3, 4 }},
+					"F" = Map { "C" = Bag { 1 },
+								"A" = Bag { 2, 2, 3 },
+								"Y" = Bag { 1,2 },
+								"X" = Bag { 3, 3, 3, 4, 1, 2 } },
+					"G" = Map { "A" = Bag { 1, 2 },
+								"Y" = Bag { 1 },
+								"X" = Bag { 2, 2, 3 } } };
+	}
+	
+	for ( be:UATS!Node in BEs ) {
+		var heightMap : Map;
+		var heights = calculateHeightOfGatesFromBAS(be, heightMap, 1);
+		var gateMap = values.get(be.id);
+		assertNotEquals("BE "+ be.id + " is was not expeted.", gateMap, null);
+		for ( gate:UATS!Node in heights.keySet() ) {
+			// Get expected Value
+			assertEquals( "BE "+ be.id + ", " + gate.id + " " + gateMap.get(gate.id) + " not equal to " + heights.get(gate), gateMap.get(gate.id).size(), heights.get(gate).size() );
+			assertEquals( "" + gateMap.keySet() + "does not contain gate " + gate.id, gateMap.keySet().includes(gate.id), true ); //TEST
+			assertEquals( "BE "+ be.id + ", " + gate.id + " Expected heights " + gateMap.get(gate.id) + " does not contain all " + heights.get(gate), gateMap.get(gate.id).includesAll(heights.get(gate)), true );
+		}
+	}
+}
+
+@test
+operation DepthPerGate_DefaultTree() {
+	var rootNode	: UATS!Node 		= UATS!AttackTree.allInstances().first().Root;
+	// Expected values. TODO:
+	var values;
+	if ( inputModel.asString() == "AND" ) { //ANT parameter
+		values = Map{	"A" = Bag { 1 } };
+	} else {
+		values = Map{	"X" = Bag { 1 },
+						"Y" = Bag { 2, 3 },
+						"A" = Bag { 2 },
+						"B" = Bag { 3 },
+						"C" = Bag { 3, 3, 4 } };
+	}
+	var depthMap : Map;
+	depthMap = calculateDepthOfGatesFromRoot(rootNode, depthMap, 1);
+	
+	var depthMapIds = Bag {};
+	for (key in depthMap.keySet()) {
+		depthMapIds.add(key.id);
+	}
+	assertEquals( true, values.keySet().includesAll(depthMapIds) ); 
+	assertEquals( true, depthMapIds.includesAll(values.KeySet()) ); 
+	for ( node in depthMap.KeySet() ) {
+		assertEquals( "For Gate " + node.id + " expected " + values.get(node.id) + " but got " + depthMap.get(node), values.get(node.id).size(), depthMap.get(node).size() );
+		assertEquals( "For Gate " + node.id + " expected " + values.get(node.id) + " but got " + depthMap.get(node), depthMap.get(node).asBag().includesAll( values.get( node.id ) ), true );
+		assertEquals( "For Gate " + node.id + " expected " + values.get(node.id) + " but got " + depthMap.get(node), values.get( node.id ).includesAll( depthMap.get(node).asBag()  ), true );
+	}
+}
+
+@test
+operation copyIterator() {
+	var nodeA = new UATS!Node; nodeA.id = "A";
+	var nodeB = new UATS!Node; nodeB.id = "B";
+	var nodeC = new UATS!Node; nodeC.id = "C";
+	var nodeD = new UATS!Node; nodeD.id = "D";
+	
+	var sequence = Sequence {nodeA, nodeB, nodeC, nodeD};
+
+	var iterator1 = createIterator(sequence);
+	// Copy iterator.
+	var iterator2 = iterator1.copyIterator();
+    assertEquals( iterator1.toString(), iterator2.toString() );
+
+	var nextNode = iterator2.next();
+    assertNotEquals( iterator1.toString(), iterator2.toString() );
+    assertEquals( iterator2.next(), nodeB );
+
+	// Run iterator.
+    assertEquals( iterator1.first().first(), nodeA );
+    assertEquals( iterator1.hasNext(), true);
+    assertEquals( iterator1.next(), nodeA );
+    assertEquals( iterator1.hasNext(), true);
+    assertEquals( iterator1.next(), nodeB );
+    assertEquals( iterator1.hasNext(), true);
+    assertEquals( iterator1.next(), nodeC );
+    assertEquals( iterator1.hasNext(), true);
+    assertEquals( iterator1.next(), nodeD );
+    assertEquals( iterator1.hasNext(), false);
+}
+
+operation Map getNodeById( id:String ) {
+	for ( node in self.KeySet) {
+		if ( node.id == id ){
+			return node;
+		}
+	}
+	return null;
+}
+
+
+
+

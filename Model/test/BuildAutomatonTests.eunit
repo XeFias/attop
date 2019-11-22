@@ -1,0 +1,118 @@
+import "../data/transformations/IntermediateGenerator.eol";
+import "../data/transformations/IntermediateState.eol";
+
+@test
+operation Test_buildIMAFromAnd() {
+
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode	: UATS!Node 		= attackTree.Root;
+	var nodes		: Set(UATS!Node)	= attackTree.Nodes;
+
+	// Expected result.
+	//var ima_expected = createExpectedResultForANDAttackTree();
+	
+	var IMA	: Sequence(IMA!State) = generateIntermediateAutomata(attackTree, rootNode);
+	
+	// Assert the result.
+	
+}
+
+@test
+operation HeightPerGate_DefaultTree() {
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var nodes		: Set(UATS!Node) 	= attackTree.Nodes;
+	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
+	
+	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
+	var bottomUpIterator= createIterator(bottomUp);
+	
+	markGatesReachableFromBAS( bottomUpIterator, BEs );
+	
+}
+
+
+operation createExpectedResultForANDAttackTree() 
+		: Sequence(IMA!State) {
+
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode	: UATS!Node 		= attackTree.Root;
+	var nodes		: Set(UATS!Node)	= attackTree.Nodes;
+	
+	var rootState = constructInitialState( "s0", nodes, rootNode );
+
+	var gateA	= nodes.getNodeById("A");
+	var beB		= nodes.getNodeById("B");
+	var beC		= nodes.getNodeById("C");
+
+	// B succeded
+	var newStateB = rootState.copyState( "B" );
+	newStateB.setNodeStatus( beB, IMA!StatusType#SUCCESS );
+	rootState.setDisruption( beB, IMA!StatusType#SUCCESS,  newStateB );
+
+	// B failed
+	var newStateNotB = rootState.copyState( "notB" );
+	newStateNotB.setNodeStatus( beB,	IMA!StatusType#FAILED );
+	newStateNotB.setNodeStatus( beC,	IMA!StatusType#DONTCARE );
+	newStateNotB.setNodeStatus( gateA,	IMA!StatusType#FAILED );
+	rootState.setDisruption( beB, IMA!StatusType#FAILED,  newStateNotB );
+	// Add transition of combined Failed state.
+
+	// B succeded, C succeded
+	var newStateBC = newStateB.copyState( "BC" );
+	newStateBC.setNodeStatus( beC,	IMA!StatusType#SUCCESS );
+	newStateBC.setNodeStatus( gateA,IMA!StatusType#SUCCESS );
+	newStateB.setDisruption( beC,	IMA!StatusType#SUCCESS,  newStateBC );
+
+	// B succeded, C failed
+	var newStateBnotC = newStateB.copyState( "BnotC" );
+	newStateBnotC.setNodeStatus( beC,	IMA!StatusType#FAILED );
+	newStateBnotC.setNodeStatus( gateA,	IMA!StatusType#FAILED );
+	newStateB.setDisruption( beC,		IMA!StatusType#FAILED,  newStateBnotC );
+
+	// C succeded
+	var newStateC = rootState.copyState( "C" );
+	newStateC.setNodeStatus( beC, IMA!StatusType#SUCCESS );
+	rootState.setDisruption( beC, IMA!StatusType#SUCCESS,  newStateC );
+
+	// C failed
+	var newStateNotC = rootState.copyState( "notC" );
+	newStateNotC.setNodeStatus( beC,	IMA!StatusType#FAILED );
+	newStateNotC.setNodeStatus( beB,	IMA!StatusType#DONTCARE );
+	newStateNotC.setNodeStatus( gateA,	IMA!StatusType#FAILED );
+	rootState.setDisruption( beC, IMA!StatusType#FAILED,  newStateNotC );
+
+	// C succeded, B succeded. TODO: Duplicate
+	var newStateCB = newStateC.copyState( "CB" );
+	newStateCB.setNodeStatus( beB,	IMA!StatusType#SUCCESS );
+	newStateCB.setNodeStatus( gateA,IMA!StatusType#SUCCESS );
+	newStateC.setDisruption( beC, IMA!StatusType#SUCCESS,  newStateCB );
+
+	// C succeded, B failed.
+	var newStateCnotB = newStateC.copyState( "CnotB" );
+	newStateCnotB.setNodeStatus( beB,	IMA!StatusType#FAILED );
+	newStateCnotB.setNodeStatus( gateA,	IMA!StatusType#FAILED );
+	newStateC.setDisruption( beC, IMA!StatusType#FAILED,  newStateCnotB );
+
+	// Add transition of combined Success state.
+	var successGoal = newStateC.createSuccesGoal();
+	newStateBC.setDisruption( beC,		IMA!StatusType#SUCCESS,  successGoal );
+	newStateCB.setDisruption( beC,		IMA!StatusType#SUCCESS,  successGoal );
+
+	// Add transition of combined Fail state.
+	var failGoal 	= newStateC.createFailGoal();
+	newStateNotB.setDisruption( beC,	IMA!StatusType#FAILED,  failGoal );
+	newStateNotC.setDisruption( beC,	IMA!StatusType#FAILED,  failGoal );
+	newStateBnotC.setDisruption( beC,	IMA!StatusType#FAILED,  failGoal );
+	newStateCnotB.setDisruption( beC,	IMA!StatusType#FAILED,  failGoal );
+
+	// TODO: how to handle duplicate states (Do not proceed?)
+
+	return Sequence{ rootState, successGoal, failGoal };
+}
+
+operation Collection(UATS!Node) getNodeById( id:String ){
+	for ( node in self) {
+		if (node.id == id ) {
+			return node; } }
+	fail("Node with id " + id + " not found");
+}

@@ -1,3 +1,5 @@
+import "IntermediateStd.eol";
+
 /******************************************************************************
 *  Operations manipulate state
 ******************************************************************************/
@@ -8,28 +10,55 @@
 */
 operation constructInitialState(
 			name:String, 
-			nodes:Set(UATS!Node), 
-			BEs:Set(UATS!Node)) 
+			nodes:Set(UATS!Node),
+			goalGate:UATS!Node) 
 		: IMA!State {
-	var gates : OrderedSet = nodes.clone();
-	gates.removeAll(BEs);
-	
+
+	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
+	var gates 	: Set(UATS!Node) = nodes.excludingAll(BEs);
+
 	var s0 : IMA!State = new IMA!State;
 	s0.name = name;
-	
-	var BEsStatuses: Map;
-	var GatesStatuses: Map;
+	s0.goalGateId = goalGate.id;
 	for (be in BEs) {
-		var id : String = be.id;
+		var id = be.id;
 		id.~nodeRef = be; 
 		s0.bes.put(id, IMA!StatusType#OPERATIONAL);
 	}
 	for (gate in gates) {
 		var id : String = gate.id;
-		id.~nodeRef = gate; 
+		id.~nodeRef = gate; 				// Maintain reference to node in 
+											// the Attack Tree via ~nodeRef. 
 		s0.gates.put(id, IMA!StatusType#OPERATIONAL);
 	}
 	return s0;
+}
+
+operation IMA!State createSuccesGoal()
+		: IMA!State {
+	var state : IMA!State = new IMA!State;
+	state = self.copyState( "SUCCESS" );
+	state.setAllStatuses( IMA!StatusType#DONTCARE );
+	state.gates.put( self.goalGateId, IMA!StatusType#SUCCESS );
+	return state;
+}
+
+operation IMA!State createFailGoal() 
+		: IMA!State {
+	var state : IMA!State = new IMA!State;
+	state = self.copyState( "FAIL" );
+	state.setAllStatuses( IMA!StatusType#DONTCARE );
+	state.gates.put( self.goalGateId, IMA!StatusType#FAILED );
+	return state;
+}
+
+operation IMA!State setAllStatuses( status ) {
+	for (be in self.bes.keySet()) {
+		self.bes.put(be, status);
+	}
+	for (gate in self.gates.keySet()) {
+		self.gates.put(gate, status);
+	}
 }
 
 operation status2Str(i) : String {
@@ -43,9 +72,9 @@ operation status2Str(i) : String {
 	}
 }
 
-operation IMA!State printState() {
-
-	"(".print();
+operation IMA!State toString(withName:Boolean) : String {
+	var r:String = "";
+	r = r.concat("(");
 	var BEs = self.bes;
 	var stateStr = "";
 	for ( be in BEs.keySet() ) {
@@ -57,8 +86,19 @@ operation IMA!State printState() {
 		stateStr += ""+(gate + ":" + status2Str(self.gates.get(gate)) + ",");
 	}
 	stateStr = stateStr.substring(0, stateStr.length()-1);
-	(stateStr + ") = " + self.name).println();
-} 
+	if (withName) {
+		r = r.concat(stateStr + ") = " + self.name);
+	} else {
+		r = r.concat(stateStr + ")");
+	}
+
+	return r;
+}
+
+operation IMA!State printState(withName:Boolean) {
+	var t = self.toString(withName);
+	t.println();
+}
 
 operation IMA!State copyState( newName:String )
 		: IMA!State {
@@ -70,6 +110,7 @@ operation IMA!State copyState( newName:String )
 operation IMA!State copyState()
 		: IMA!State {
 	var s : IMA!State = new IMA!State;
+	s.goalGateId = self.goalGateId;
 	for ( key in self.bes.keySet() ){
 		var value = self.bes.get(key);
 		s.bes.put(key, value);
@@ -84,18 +125,31 @@ operation IMA!State copyState()
 }
 
 operation IMA!State getNodeStatus( node:UATS!Node ) {
-	if (self.bes.containsKey(node.id)) {
-		return self.bes.get(node.id);
+	if (self.bes.containsKey( node.id ) ) {
+		return self.bes.get( node.id );
 	} else {
-		return self.gates.get(node.id);
+		return self.gates.get( node.id );
 	}
 }
 
-operation IMA!State setNodeStatus( node:UATS!Node, value ) {
-	if (self.bes.containsKey(node.id)) {
-		return self.bes.put(node.id,value);
+operation IMA!State setNodeStatus( node:UATS!Node, value ) { // value is StatusType
+	if (self.bes.containsKey( node.id ) ) {
+		return self.bes.put( node.id,value );
 	} else {
-		return self.gates.put(node.id,value);
+		return self.gates.put( node.id, value );
 	}
 }
+
+operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State ) 
+		: IMA!Disruption {
+	var d1 : IMA!Disruption = new IMA!Disruption;
+	d1.beId = be.id;
+	d1.~be = be;
+	d1.source = self;
+	d1.target = target;
+	d1.newStatus = change;
+	return d1;
+}
+
+
 /**********************************EOF****************************************/

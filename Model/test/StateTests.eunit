@@ -1,0 +1,134 @@
+import "../data/transformations/IntermediateState.eol";
+
+@test
+operation Test_copyingOfState() {
+
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode    : UATS!Node			= attackTree.Root; 
+	var nodes		: Set(UATS!Node)	= attackTree.Nodes;
+	var BEs			: Set(UATS!Node)	= nodes.select(n|n.children.isEmpty()).asSet();
+	var gates 		: Set(UATS!Node)	= nodes.excludingAll(BEs);
+
+	// Make sure the correct model is used during this test.
+	assertEquals( rootNode.id, "X");
+
+	var rootState = constructInitialState( "s0", nodes, rootNode );
+	assertEquals( rootNode.id, rootState.goalGateId );
+
+	// The final success state has all nodes set to DONTCARE exceipt for the Root Gate
+	var successGoalState = rootState.createSuccesGoal();
+	for ( be in successGoalState.bes.keySet() ) {
+		assertEquals( IMA!StatusType#DONTCARE, successGoalState.bes.get( be ) );
+	}
+	for ( gate in successGoalState.bes.keySet() ) {
+		if ( gate == successGoalState.goalGateId ) {
+			assertEquals( IMA!StatusType#SUCCESS, successGoalState.bes.get( gate ) );
+		} else {
+			assertEquals( IMA!StatusType#DONTCARE, successGoalState.bes.get( gate ) );
+		}
+	}	
+
+	// The final fail state has all nodes set to DONTCARE exceipt for the Root Gate
+	var failGoalState = rootState.createSuccesGoal();
+	for ( be in failGoalState.bes.keySet() ) {
+		assertEquals( IMA!StatusType#DONTCARE, failGoalState.bes.get( be ) );
+	}
+	for ( gate in failGoalState.bes.keySet() ) {
+		if ( gate == failGoalState.goalGateId ) {
+			assertEquals( IMA!StatusType#FAILED, failGoalState.bes.get( gate ) );
+		} else {
+			assertEquals( IMA!StatusType#DONTCARE, failGoalState.bes.get( gate ) );
+		}
+	}	
+
+	var newState1 = rootState.copyState( "s1" );
+	assertEquals( rootNode.id, newState1.goalGateId );
+	
+	// A copy is equal except for the name.
+	assertEquals( rootState.toString(false), newState1.toString(false) );
+	assertNotEquals( rootState.toString(true), newState1.toString(true) );
+
+	var gate1= gates.first();
+	var gate2= gates.second();
+	var be1	= BEs.first();
+	var be1	= BEs.second();
+	
+	// Successfully get and set status of a random node.
+	var gateStatus	= newState1.getNodeStatus( gate1 );
+	newState1.setNodeStatus( gate1, IMA!StatusType#SUCCESS );
+	assertEquals( newState1.getNodeStatus( gate1 ), IMA!StatusType#SUCCESS );
+	var gateStatus2	= newState1.getNodeStatus( gate1 );
+	assertNotEquals( gateStatus, gateStatus2 );
+
+	// The same status remain unchangesed in the rootState.
+	var gateStatusRoot	= rootState.getNodeStatus( gate1 );
+	assertNotEquals( rootState, gateStatus2 );
+	assertEquals( IMA!StatusType#OPERATIONAL, gateStatusRoot );
+
+	// A copy should retain all nodes statuses.
+	var newState2 = newState1.copyState( "s2" );
+	assertEquals( newState2.getNodeStatus( gate1 ), IMA!StatusType#SUCCESS );
+	
+	assertEquals( rootNode.id, newState2.goalGateId );
+	
+}
+
+@test
+operation Test_linkingOfStates() {
+
+	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode    : UATS!Node			= attackTree.Root; 
+	var nodes		: Set(UATS!Node)	= attackTree.Nodes;
+	var BEs			: Set(UATS!Node)	= nodes.select(n|n.children.isEmpty()).asSet();
+	var gates 		: Set(UATS!Node)	= nodes.excludingAll(BEs);
+	
+	var rootState = constructInitialState( "s0", nodes, rootNode );
+
+	var nodeA = new UATS!Node; nodeA.id = "A";
+	var nodeB = new UATS!Node; nodeB.id = "B";
+	var nodeC = new UATS!Node; nodeC.id = "C";
+	var nodeD = new UATS!Node; nodeD.id = "D";
+
+	assertEquals( rootState.outgoing.size() , 0);
+
+	var newState1 = rootState.copyState( "s1" );
+	var d1 = rootState.setDisruption( nodeA, IMA!StatusType#SUCCESS, newState1 );
+	assertEquals( d1.newStatus, IMA!StatusType#SUCCESS);
+	assertEquals( rootState.outgoing.size() , 1);
+	assertEquals( rootState.outgoing.first().beId , "A");
+	assertEquals( rootState.outgoing.first().~be, nodeA );
+
+	
+
+	var newState2 = rootState.copyState( "s2" );
+	var d2 = rootState.setDisruption( nodeB, IMA!StatusType#FAILED, newState2 );
+	assertEquals( d2.newStatus, IMA!StatusType#FAILED);
+	assertEquals( rootState.outgoing.size() , 2);
+	assertEquals( rootState.outgoing.second().beId , "B");
+	assertEquals( rootState.outgoing.second().~be, nodeB );
+	
+	assertEquals( newState1.outgoing.size() , 0);
+
+	var newState3 = rootState.copyState( "s3" );
+	var d3 = newState1.setDisruption( nodeC, IMA!StatusType#DONTCARE, newState3 );
+	assertEquals( d3.newStatus, IMA!StatusType#DONTCARE);
+	assertEquals( newState1.outgoing.size() , 1);
+	assertEquals( newState1.outgoing.first().beId, "C");
+	assertEquals( newState1.outgoing.first().~be, nodeC );
+
+	assertEquals( newState3.incoming.size() , 1);
+
+	var d4 = newState1.setDisruption( nodeD, IMA!StatusType#SAFE, newState3 );
+	assertEquals( d4.newStatus, IMA!StatusType#SAFE);
+	assertEquals( newState1.outgoing.size() , 2);
+	assertEquals( newState1.outgoing.second().beId, "D");
+	assertEquals( newState1.outgoing.second().~be, nodeD );
+}
+
+operation Map(String, IMA!state) add( String:state, state:IMA!State ) 
+		: Sequence(Boolean) {
+		
+	var sHashMap:Map(String, IMA!state);		
+} 
+
+

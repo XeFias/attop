@@ -7,15 +7,14 @@
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="State">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EReference" name="outgoing" upperBound="-1"
-        eType="#//Disruption" containment="true" eOpposite="#//Disruption/source"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="outgoing" eType="#//Disruption"
+        containment="true" eOpposite="#//Disruption/source"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="incoming" upperBound="-1"
         eType="#//Disruption" eOpposite="#//Disruption/target"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="bes" upperBound="-1" eType="#//StringToStatusTypeMap"
         containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="gates" upperBound="-1"
         eType="#//StringToStatusTypeMap" containment="true"/>
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="goalGateId" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="Disruption">
     <eStructuralFeatures xsi:type="ecore:EReference" name="source" eType="#//State"
@@ -23,7 +22,6 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="target" eType="#//State"
         eOpposite="#//State/incoming"/>
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="beId" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
-    <eStructuralFeatures xsi:type="ecore:EAttribute" name="newStatus" eType="#//StatusType"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="StringToStatusTypeMap" instanceClassName="java.util.Map$Entry">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="#//StatusType"

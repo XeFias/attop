@@ -1,0 +1,13 @@
+operation Collection(IMA!Disruption) toString()	: String {
+	var r:String = "";
+	r = r.concat("(");
+	var stateStr = "";
+	for ( dis:IMA!Disruption in self ) {
+		stateStr += ""+ dis.beId + "|" + dis.source.id + " -> " + dis.target.id + ",";
+	}
+	if ( stateStr.length() > 0 ) {
+		stateStr = stateStr.substring(0, stateStr.length()-1);
+	}
+	r = r.concat(stateStr + ")");
+	return r;	
+}
