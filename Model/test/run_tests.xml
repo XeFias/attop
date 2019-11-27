@@ -11,20 +11,34 @@
 			read="true" store="false" /> 
 			
 		<!-- AND model of AT model -->
-		<epsilon.emf.loadModel name="UATS2"
+		<epsilon.emf.loadModel name="UATS_and"
 			modelfile="models/UATS_and.model"
 			metamodelfile="${basedir}/../data/models/UATMM_structure.ecore"
 			read="true" store="false" />
-		<epsilon.emf.loadModel name="UATV2"
+		<epsilon.emf.loadModel name="UATV_and"
 			modelfile="models/UATV_and.model"
 			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
 			read="true" store="false" />
 
+		<epsilon.emf.loadModel name="UATS_sand"
+			modelfile="models/UATS_sand.model"
+			metamodelfile="${basedir}/../data/models/UATMM_structure.ecore"
+			read="true" store="false" />
+		<epsilon.emf.loadModel name="UATV_sand"
+			modelfile="models/UATV_sand.model"
+			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
+			read="true" store="false" />
+		
 		<epsilon.emf.loadModel name="IMA"
 			modelfile="models/IMA_and.model"
 			metamodelfile="${basedir}/../data/models/iMA.ecore"
 			read="false" store="true" />
-		
+
+		<epsilon.emf.loadModel name="IMA_sand"
+			modelfile="models/IMA_sand.model"
+			metamodelfile="${basedir}/../data/models/iMA.ecore"
+			read="false" store="true" />
+
 		<epsilon.eunit src="IntegrationTests.eunit">
 			<model ref="UATS" as="UATS"/>
 			<model ref="UATV" as="UATV" />
@@ -40,8 +54,8 @@
 
 		<epsilon.eunit src="IteratorTests.eunit">
 			<parameter name="inputModel" value="AND"/>
-			<model ref="UATS2" as="UATS" />
-			<model ref="UATV" as="UATV" />
+			<model ref="UATS_and" as="UATS" />
+			<model ref="UATV_and" as="UATV" />
 			<model ref="IMA" />
 		</epsilon.eunit>
 
@@ -52,10 +66,17 @@
 		</epsilon.eunit>
 
 		<epsilon.eunit src="BuildAutomatonTests.eunit">
-			<model ref="UATS2" as="UATS" />
-			<model ref="UATV" as="UATV" />
+			<model ref="UATS_and" as="UATS" />
+			<model ref="UATV_and" as="UATV" />
 			<model ref="IMA" />
 		</epsilon.eunit>
+
+		<epsilon.eunit src="BuildAutomatonTests.eunit">
+			<model ref="UATS_sand" as="UATS" />
+			<model ref="UATV_sand" as="UATV" />
+			<model ref="IMA_sand" as="IMA"  />
+		</epsilon.eunit>
+
 		<!--
 		<epsilon.eunit src="BuildAutomatonTests.eunit">
 			<model ref="UATS" as="UATS" />

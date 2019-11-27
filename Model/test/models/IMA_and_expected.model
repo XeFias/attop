@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:iMA="iMA">
+  <iMA:InterimAutomaton>
+    <nodes name="rootState" goalGateId="A">
+      <outgoing target="/0/@nodes.1" beId="B" newStatus="SUCCESS"/>
+      <outgoing target="/0/@nodes.2" beId="B" newStatus="FAILED"/>
+      <outgoing target="/0/@nodes.5" beId="C" newStatus="SUCCESS"/>
+      <outgoing target="/0/@nodes.6" beId="C" newStatus="FAILED"/>
+      <bes key="B"/>
+      <bes key="C"/>
+      <gates key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.0/@outgoing.0" goalGateId="A">
+      <outgoing target="/0/@nodes.3" beId="C" newStatus="SUCCESS"/>
+      <outgoing target="/0/@nodes.4" beId="C" newStatus="FAILED"/>
+      <bes value="SUCCESS" key="B"/>
+      <bes key="C"/>
+      <gates key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.0/@outgoing.1" goalGateId="A">
+      <outgoing target="/0/@nodes.10" beId="C" newStatus="FAILED"/>
+      <bes value="FAILED" key="B"/>
+      <bes value="DONTCARE" key="C"/>
+      <gates value="FAILED" key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.1/@outgoing.0" goalGateId="A">
+      <outgoing target="/0/@nodes.9" beId="C" newStatus="SUCCESS"/>
+      <bes value="SUCCESS" key="B"/>
+      <bes value="SUCCESS" key="C"/>
+      <gates value="SUCCESS" key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.1/@outgoing.1" goalGateId="A">
+      <outgoing target="/0/@nodes.10" beId="C" newStatus="FAILED"/>
+      <bes value="SUCCESS" key="B"/>
+      <bes value="FAILED" key="C"/>
+      <gates value="FAILED" key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.0/@outgoing.2" goalGateId="A">
+      <outgoing target="/0/@nodes.7" beId="C" newStatus="SUCCESS"/>
+      <outgoing target="/0/@nodes.8" beId="C" newStatus="FAILED"/>
+      <bes key="B"/>
+      <bes value="SUCCESS" key="C"/>
+      <gates key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.0/@outgoing.3" goalGateId="A">
+      <outgoing target="/0/@nodes.10" beId="C" newStatus="FAILED"/>
+      <bes value="DONTCARE" key="B"/>
+      <bes value="FAILED" key="C"/>
+      <gates value="FAILED" key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.5/@outgoing.0" goalGateId="A">
+      <outgoing target="/0/@nodes.9" beId="C" newStatus="SUCCESS"/>
+      <bes value="SUCCESS" key="B"/>
+      <bes value="SUCCESS" key="C"/>
+      <gates value="SUCCESS" key="A"/>
+    </nodes>
+    <nodes name="Generated" incoming="/0/@nodes.5/@outgoing.1" goalGateId="A">
+      <outgoing target="/0/@nodes.10" beId="C" newStatus="FAILED"/>
+      <bes value="FAILED" key="B"/>
+      <bes value="SUCCESS" key="C"/>
+      <gates value="FAILED" key="A"/>
+    </nodes>
+    <nodes name="SUCCESS" incoming="/0/@nodes.3/@outgoing.0 /0/@nodes.7/@outgoing.0" goalGateId="A">
+      <bes value="DONTCARE" key="B"/>
+      <bes value="DONTCARE" key="C"/>
+      <gates value="SUCCESS" key="A"/>
+    </nodes>
+    <nodes name="FAIL" incoming="/0/@nodes.2/@outgoing.0 /0/@nodes.6/@outgoing.0 /0/@nodes.4/@outgoing.0 /0/@nodes.8/@outgoing.0" goalGateId="A">
+      <bes value="DONTCARE" key="B"/>
+      <bes value="DONTCARE" key="C"/>
+      <gates value="FAILED" key="A"/>
+    </nodes>
+  </iMA:InterimAutomaton>
+  <iMA:State/>
+  <iMA:State/>
+</xmi:XMI>

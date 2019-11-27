@@ -1,0 +1,47 @@
+import "IntermediateState.eol";
+
+operation createStateMap() 
+: Map(Integer, Sequence(IMA!State)) {
+	var hashMap:Map(Integer, Sequence(IMA!State)) = Map{};
+	return hashMap; 
+}
+
+operation Map(Integer, Sequence(IMA!State)) put( state:IMA!State ) 
+: Boolean {
+	var exists:Boolean = false;
+	var stateStr = state.toString(false);
+	var hash = state.getHash();
+	if ( self.containsKey(hash) ) {
+		var states = self.get(hash);
+		for ( s in states ) {
+			if (s.toString() == stateStr ) {
+				exists = true; 
+			}
+		}
+		if ( not exists ){
+			states.add( state );
+		}
+	} else {
+		// Add new hash key
+		self.put( hash, Sequence{state} );
+	}
+	return exists;
+}
+
+operation Map(Integer, Sequence(IMA!State)) get( state:IMA!State ) 
+: Sequence(Boolean,IMA!State) {
+	var stateStr = state.toString();
+	var hash = state.getHash();
+	if ( self.containsKey(hash) ) {
+		var states = self.get(hash);
+		for ( s in states ) {
+			if (s.toString() == stateStr ) {
+				// return the existing state to facilitate linking. 
+				return Sequence{ true, s }; 
+			}
+		}
+	}
+	return Sequence{ false };
+}
+
+/**********************************EOF****************************************/

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="ASCII"?>
+<nl.utwente.ewi.fmt.UATMM:AttackTree xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:nl.utwente.ewi.fmt.UATMM="ecore:UATMM_structure" Root="A">
+  <Nodes children="B C" id="A" label="A">
+    <connector xsi:type="nl.utwente.ewi.fmt.UATMM:SAND"/>
+  </Nodes>
+  <Nodes parents="A" id="B" label="B"/>
+  <Nodes parents="A" id="C" label="C"/>
+</nl.utwente.ewi.fmt.UATMM:AttackTree>

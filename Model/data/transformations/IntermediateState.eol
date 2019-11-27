@@ -72,17 +72,22 @@ operation status2Str(i) : String {
 	}
 }
 
+// TODO: find more efficient means to create Hash.
+operation IMA!State getHash() : Integer {
+	return self.toString(false).hashCode();
+}
+
 operation IMA!State toString(withName:Boolean) : String {
 	var r:String = "";
 	r = r.concat("(");
 	var BEs = self.bes;
 	var stateStr = "";
-	for ( be in BEs.keySet() ) {
+	for ( be in BEs.keySet().sortBy(x|x) ) {
 		stateStr += ""+(be + ":" + status2Str(BEs.get(be)) + ",");
 	}
 	stateStr = stateStr.substring(0, stateStr.length()-1);
 	stateStr += "||";
-	for ( gate in self.gates.keySet() ) {
+	for ( gate in self.gates.keySet().sortBy(x|x) ) {
 		stateStr += ""+(gate + ":" + status2Str(self.gates.get(gate)) + ",");
 	}
 	stateStr = stateStr.substring(0, stateStr.length()-1);
