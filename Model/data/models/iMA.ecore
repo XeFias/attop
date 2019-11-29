@@ -38,4 +38,8 @@
     <eLiterals name="SAFE" value="3"/>
     <eLiterals name="DONTCARE" value="4"/>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="GoalState">
+    <eLiterals name="SUCCESS" value="1"/>
+    <eLiterals name="FAILED"/>
+  </eClassifiers>
 </ecore:EPackage>

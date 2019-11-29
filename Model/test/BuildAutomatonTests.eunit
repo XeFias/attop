@@ -5,7 +5,6 @@ import "../data/transformations/IntermediateStateMap.eol";
 @test
 operation Test_buildIMAFromAnd() {
 
-	UATS!AttackTree.allInstances().println( "UATS!AttackTree = " );
 	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
 	var rootNode	: UATS!Node 		= attackTree.Root;
 	var nodes		: Set(UATS!Node)	= attackTree.Nodes;

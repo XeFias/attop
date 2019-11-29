@@ -36,7 +36,7 @@ operation constructInitialState(
 
 operation IMA!State createSuccesGoal()
 		: IMA!State {
-	var state : IMA!State = new IMA!State;
+	var state : IMA!State;
 	state = self.copyState( "SUCCESS" );
 	state.setAllStatuses( IMA!StatusType#DONTCARE );
 	state.gates.put( self.goalGateId, IMA!StatusType#SUCCESS );
@@ -45,7 +45,7 @@ operation IMA!State createSuccesGoal()
 
 operation IMA!State createFailGoal() 
 		: IMA!State {
-	var state : IMA!State = new IMA!State;
+	var state : IMA!State;
 	state = self.copyState( "FAIL" );
 	state.setAllStatuses( IMA!StatusType#DONTCARE );
 	state.gates.put( self.goalGateId, IMA!StatusType#FAILED );
@@ -147,8 +147,24 @@ operation IMA!State setNodeStatus( node:UATS!Node, value ) { // value is StatusT
 
 operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State ) 
 		: IMA!Disruption {
+		
+	// Prevent duplicate link.		
+	for ( disruption in self.outgoing ) {
+		if (	( disruption.newStatus == change )
+			and	( disruption.source == self ) 
+			and ( disruption.target == target )) {
+				return disruption; // return existing distuption.
+			}
+	}
+
 	var d1 : IMA!Disruption = new IMA!Disruption;
-	d1.beId = be.id;
+	if (be = null) {
+		d1.beId = change.toString();
+		//("setDisruption Create edge from " + self.toString(true) + " to final state " + target.toString(true) + " with edge " + change).println();
+	} else {
+		d1.beId = be.id;
+		//("setDisruption Create edge from " + self.toString(true) + " to " + target.toString(true) + " with edge " +  be + " and new be status " + change).println();
+	}
 	d1.~be = be;
 	d1.source = self;
 	d1.target = target;

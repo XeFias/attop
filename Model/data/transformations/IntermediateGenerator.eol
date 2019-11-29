@@ -11,7 +11,7 @@ operation generateIntermediateAutomata(
 	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
 	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
 	var topDown	: Sequence(UATS!Node) = fromLevelMapToSequence(calculateDepthOfGates(rootNode));
-	for ( be in BEs ) { topDown.add(be); }
+	for ( be in BEs ) { topDown.add(be); } // Add BEs to the tail of the topDown itterator.
 
 	var gates 			= nodes.excludingAll(BEs);
 	var bottomUpIterator= createIterator(bottomUp);
@@ -20,7 +20,8 @@ operation generateIntermediateAutomata(
 	var rootState 		= constructInitialState("rootState", nodes, rootNode);
 	var successGoalState= rootState.createSuccesGoal();
 	var failGoalState	= rootState.createFailGoal();
-
+	var finalStates:Map(String,IMA!State)     = Map{IMA!GoalState#SUCCESS = failGoalState,
+							  						IMA!GoalState#FAILED = successGoalState };
 	gStateMap.put(rootState);
 	gStateMap.put(successGoalState);
 	gStateMap.put(failGoalState);
@@ -29,13 +30,27 @@ operation generateIntermediateAutomata(
 		for ( be in rootState.bes.keySet() ) {
 			var nextStatesBe = recur_buildIMA(	gStateMap, 
 												bottomUpIterator, 
-												topDownIterator, 
-												rootState, 
+												topDownIterator,
+												finalStates,
+												rootNode, 
+												rootState,
 												be.~nodeRef, 
 												nextStatus );
 			for ( state in nextStatesBe ) {
-				("generateIntermediateAutomata Create edge from " + rootState.toString(true) + " to " + state.toString(true) + " with edge " +  be + " and new be status " + nextStatus).println();
 				rootState.setDisruption( be.~nodeRef, nextStatus, state );
+				
+				// TODO: Not nice duplicate code. Move to recur_buildIMA ?				
+				var statusType = state.getNodeStatus( rootNode );
+				if ( statusType <> IMA!StatusType#OPERATIONAL ) {
+					switch (statusType) {
+						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get("success") ); }
+						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get("failed") ); }
+						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get("failed") ); }
+						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
+						default : throw (rootState.children.println("unknown StatusType " + statusType));
+					}
+				}
+
 			}
 		}
 	}
@@ -56,9 +71,11 @@ operation fromLevelMapToSequence(
 }
 
 // TODO: rename
-operation recur_buildIMA(	gStateMap, 
+operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)), 
 							bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
-							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
+							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)),
+							finalStates:Map(String,IMA!State),
+							rootNode:UATS!Node, 
 							prevState:IMA!State, 
 							be:UATS!Node, 
 							nextStatus ) 
@@ -83,13 +100,13 @@ operation recur_buildIMA(	gStateMap,
 		} else {
 			// remember the existing state.
 			existingStates.add( exists.second() );
-			// remove doubles created.
+			// forget the double / remove doubles created.
 			doubleStates.add( newState );
 		}
 	}
 
 	for (state in doubleStates){
-		delete state; // Make sure the doubles are deleted from the model !!!
+		delete state; // Make sure the double states are deleted from the model !!!
 	}
 	
 	for ( state in missingStates ) {
@@ -97,37 +114,53 @@ operation recur_buildIMA(	gStateMap,
 		state.setSafeStatuses( bottomUp.copyIterator() );
 		// Propogate DONTCARE Statuses.
 		state.propogateDontCareStatuses( topDown.copyIterator() );
+		gStateMap.put( state );
 	}
 	
 	var targetStates = missingStates.includingAll( existingStates );
 		
 	// Recursively process new states to create the monolithic automata.
 	for ( nextState in missingStates ) {
-		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown);
+		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown, finalStates, rootNode);
 	}
 
 	return targetStates;
 }
 
 operation IMA!State recur2_buildIMA(	
-							gStateMap, /* ? */
+							gStateMap:Map(Integer, Sequence(IMA!State)),
 							bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
-							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)) ) {
+							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)),
+							finalStates:Map(String,IMA!State),
+							rootNode:UATS!Node ) {
 
-	// Get remaining BEs which are still OPERASTIONAL.
+	// Get remaining BEs which are still OPERATIONAL.
 	for ( be in self.getOperationalBEs() ) {
-		// Process state when BE SUCCEEDS or FAILES.
+		// Process state when BE SUCCEEDS or FAILS.
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-			("Processing " + be + ", " + nextStatus).println(); 
 			var nextStatesBe = recur_buildIMA(	gStateMap, 
 												bottomUp,
 												topDown,
+												finalStates,
+												rootNode,
 												self,
 												be.~nodeRef,
 												nextStatus );
-			for ( state in nextStatesBe ) {
-				("recur2_buildIMA Create edge from " + self.toString(true) + " to " + state.toString(true) + " with edge " +  be + " and new be status " + nextStatus).println();
+			for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
 				self.setDisruption( be.~nodeRef, nextStatus, state );
+
+				// TODO: Not nice duplicate code. Move to recur_buildIMA ?				
+				var statusType = state.getNodeStatus( rootNode );
+				if ( statusType <> IMA!StatusType#OPERATIONAL ) {
+					// ? Does this link already exist.
+					switch ( statusType ) {
+						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
+						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAILED) ); }
+						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAILED) ); }
+						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
+						default : throw (self.children.println("unknown StatusType " + statusType));
+					}
+				}
 			}
 		}
 	}
@@ -144,7 +177,6 @@ operation IMA!State calculateGateStatusesInState(
 	
 	while ( TodoPackets.size() > 0 ) {
 		var work =  TodoPackets.random();
-		("WorkPacket = " + work.first().toString(true) + " " + work.second().toString() + " " + be.id).println();
 		TodoPackets.remove( work );
 		// processPacketOfWork() can generate new packets of work due to raceconditions.
 		var newPacketsOfWork = work.first().processPacketOfWork( work.second(), work.third() );
@@ -160,7 +192,6 @@ operation IMA!State processPacketOfWork(
 	be		:UATS!Node )
 : Set(Sequence) {
 	var r:Set(Sequence(Any)) = Set{};
-	"START_____".println();
 
 	while ( bottomUp.hasNext() ) {
 		var gate = bottomUp.next();
@@ -181,7 +212,6 @@ operation IMA!State processPacketOfWork(
 			throw ("When calculating the status of a Gate " + gate.id + " returned no status.");
 		}
 	}
-	"STOP_____".println();
 	return r;
 }
 
@@ -193,31 +223,27 @@ operation UATS!Node calculateStatusInState( state:IMA!State, be:UATS!Node )
 		case "AND"	:{ r.add(state.calculateStatusOfAND(self.children)); }
 		case "OR"	:{ r.add(state.calculateStatusOfOR(self.children)); }	
 		case "SAND"	:{ r.add(state.calculateStatusOfSAND(self.children)); }
-		default : throw (self.children.println("process UNKNOWN Gate!____" + self.connector.gate.id));
+		default : throw (self.children.println("process UNKNOWN Gate!____" 
+						+ self.connector.gate.id));
 	}
 	return r;
 }
 
 operation IMA!State calculateStatusOfAND( children:OrderedSet(UATS!Node) )
 : Any /*IMA!StatusType*/ {
-	self.toString(false).println("calculateStatusOfAND_______");
 	if ( children.forAll( child |  self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
 		// If all childeren are SUCCESS return SUCCESS,
-		"AND SUCCES".println();
 		return IMA!StatusType#SUCCESS;
 	} else if ( children.exists( child | 
 					self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
 		// If any is FAILED return FAILED,
-		"AND FAILED".println();
 		return IMA!StatusType#FAILED;
 	} else if ( children.exists( child | 
 					self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
 		// If any is FAILED return FAILED,
-		"AND FAILED".println();
 		return IMA!StatusType#SAFE;
 	} else {
 		// Keep gate Operational.
-		"AND OPERATIONAL".println();
 		return IMA!StatusType#OPERATIONAL;
 	}
 	// If DONTCARE ?? error because unexpected.
@@ -242,7 +268,6 @@ operation IMA!State calculateStatusOfOR( children:OrderedSet(UATS!Node) )
 
 operation IMA!State calculateStatusOfSAND( children:OrderedSet(UATS!Node) )
 : Any /*IMA!StatusType*/ {
-	self.toString(false).println("calculateStatusOfSAND_______");
 	if ( self.isActivatedFromLeft( children ) == false ) {
 		return IMA!StatusType#SAFE;
 	}
@@ -261,7 +286,6 @@ operation IMA!State calculateStatusOfSAND( children:OrderedSet(UATS!Node) )
 operation IMA!State calculateStatusOfSOR( children:OrderedSet(UATS!Node) )
 : Any /*IMA!StatusType*/ {
 	throw("TODO");
-	self.toString(false).println("calculateStatusOfSOR_______");
 	if ( self.isActivatedFromLeft( children ) == false ) {
 		return IMA!StatusType#SAFE;
 	}
@@ -321,29 +345,24 @@ operation IMA!State setSafeStatuses (
 			// gate already changed.
 		} else {
 			switch ( gate.connector.type().name ) {
-				case "AND"	:{	("SAFE? AND gate!____ " + gate.connector.gate.id).println();
-								var status = self.calculateStatusOfAND( gate.children );
+				case "AND"	:{	var status = self.calculateStatusOfAND( gate.children );
 								if ( ( status == IMA!StatusType#FAILED ) 
 									or ( status == IMA!StatusType#SAFE ) ) {
 									self.setNodeStatus(gate, IMA!StatusType#SAFE);
 								}
 								// TODO: Can this function only set statuses to SAFE?
 							}	
-				case "OR"	:{	("SAFE? OR gate!____ " + gate.connector.gate.id).println();
-								var status = self.calculateStatusOfOR( gate.children );
+				case "OR"	:{	var status = self.calculateStatusOfOR( gate.children );
 								if ( ( status == IMA!StatusType#FAILED ) 
 									or ( status == IMA!StatusType#SAFE ) ) {
 									self.setNodeStatus(gate, IMA!StatusType#SAFE);
 								}
 							}	
-				case "SAND"	:{	("SAFE? SAND gate!____ " + gate.connector.gate.id).println();
-								self.toString(false).println("SAND in _____");
-								var status = self.calculateStatusOfSAND( gate.children );
+				case "SAND"	:{	var status = self.calculateStatusOfSAND( gate.children );
 								if ( ( status == IMA!StatusType#FAILED ) 
 									or ( status == IMA!StatusType#SAFE ) ) {
 									self.setNodeStatus(gate, IMA!StatusType#SAFE);
 								}
-								self.toString(false).println("SAND out _____");
 							}	
 				default : throw (self.children.println("process UNKNOWN Gate!____" + gate.connector.gate.id));
 			}

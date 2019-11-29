@@ -30,18 +30,35 @@ operation Map(Integer, Sequence(IMA!State)) put( state:IMA!State )
 
 operation Map(Integer, Sequence(IMA!State)) get( state:IMA!State ) 
 : Sequence(Boolean,IMA!State) {
-	var stateStr = state.toString();
+	var stateStr = state.toString(false);
 	var hash = state.getHash();
 	if ( self.containsKey(hash) ) {
 		var states = self.get(hash);
 		for ( s in states ) {
-			if (s.toString() == stateStr ) {
-				// return the existing state to facilitate linking. 
+			if (s.toString(false) == stateStr ) {
+				// return the existing state to facilitate linking.
 				return Sequence{ true, s }; 
 			}
 		}
 	}
 	return Sequence{ false };
+}
+
+operation Map(Integer, Sequence(IMA!State)) println(str:String) {
+	(str + self.toString()).println();
+}
+
+operation Map(Integer, Sequence(IMA!State)) toString() 
+: String {
+	var hashMapStr = "";
+	for ( hashKey in self.keySet() ) {
+		hashMapStr += ("\nhashKey = " + hashKey);
+		for ( state in self.get(hashKey) ) {
+			hashMapStr += "\n    " + state.toString(true);
+		}
+	}
+
+	return hashMapStr;
 }
 
 /**********************************EOF****************************************/
