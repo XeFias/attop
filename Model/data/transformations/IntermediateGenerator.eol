@@ -11,8 +11,8 @@ operation generateIntermediateAutomata(
 	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
 	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
 	var topDown	: Sequence(UATS!Node) = fromLevelMapToSequence(calculateDepthOfGates(rootNode));
-	for ( be in BEs ) { topDown.add(be); } // Add BEs to the tail of the topDown itterator.
-
+	for ( be in BEs ) { topDown.add(be); } // Add BEs to the tail of the topDown iterator.
+	
 	var gates 			= nodes.excludingAll(BEs);
 	var bottomUpIterator= createIterator(bottomUp);
 	var topDownIterator	= createIterator(topDown);
@@ -25,6 +25,9 @@ operation generateIntermediateAutomata(
 	gStateMap.put(rootState);
 	gStateMap.put(successGoalState);
 	gStateMap.put(failGoalState);
+
+	// Mark the gates in the attack-tree with a Map describing there reachability.
+	markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );	 
 
 	for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 		for ( be in rootState.bes.keySet() ) {
@@ -266,8 +269,9 @@ operation IMA!State calculateStatusOfOR( children:OrderedSet(UATS!Node) )
 	}
 }
 
-operation IMA!State calculateStatusOfSAND( children:OrderedSet(UATS!Node) )
-: Any /*IMA!StatusType*/ {
+// TODO: possible race conditions implemented in DFTCalc and STORM?
+operation IMA!State calculateStatusOfSAND( children:OrderedSet(UATS!Node))
+: Any /* Set(IMA!StatusType) */ {
 	if ( self.isActivatedFromLeft( children ) == false ) {
 		return IMA!StatusType#SAFE;
 	}
@@ -344,6 +348,7 @@ operation IMA!State setSafeStatuses (
 		if ( self.getNodeStatus(gate) <> IMA!StatusType#OPERATIONAL ) {
 			// gate already changed.
 		} else {
+			// TODO: Current testcasses never trigger this condition.
 			switch ( gate.connector.type().name ) {
 				case "AND"	:{	var status = self.calculateStatusOfAND( gate.children );
 								if ( ( status == IMA!StatusType#FAILED ) 
@@ -359,6 +364,7 @@ operation IMA!State setSafeStatuses (
 								}
 							}	
 				case "SAND"	:{	var status = self.calculateStatusOfSAND( gate.children );
+								//var status = statuses.first();
 								if ( ( status == IMA!StatusType#FAILED ) 
 									or ( status == IMA!StatusType#SAFE ) ) {
 									self.setNodeStatus(gate, IMA!StatusType#SAFE);
@@ -368,7 +374,6 @@ operation IMA!State setSafeStatuses (
 			}
 		}
 	}
-	return;
 }
 
 operation IMA!State propogateDontCareStatuses ( 
@@ -396,21 +401,24 @@ operation markGatesReachableFromBAS(
 	for ( be in BEs ) {
 		be.~reachableBy = Set{ be };
 	}
-
 	// For every gate add set the Union of sets of BEs which can reach the children.
 	while( bottomUp.hasNext() ) {
 		var gate = bottomUp.next(); 
 		gate.~reachableBy = Set{};
+//		(" gate id = " + gate.id + " <-").print();
 		for ( child in gate.children ) {
+//			" | ".print();
 			gate.~reachableBy.addAll( child.~reachableBy );
-//			gate.~reachableBy.println("gate id=" + gate.id + "__");
+//			for (be in gate.~reachableBy) {be.id.print(" ");}
 		}
+		"".println();
 		// At this point this gate.~reachableBy contains all the BEs which are
 		// able to reach this gate.
 		// Next create a map which maps BEs to children.
-		gate.~beToChildren = Map{};
+//		(". at gate "+ gate.id).println();
+		gate.~beToChildren = Map{}; /* Map(UATS!Node,Sequence(UATS!Node)) */ 
 		for ( be in gate.~reachableBy ) {
-//			("..create map for be= "+ be.id +" at gate "+ gate.id).println();
+//			("..create map for be= "+ be.id ).println();
 			for ( child in gate.children ){
 //				child.id.println("...testing child = ");
 				if ( child.~reachableBy.includes( be ) ) {
@@ -446,20 +454,19 @@ operation markGatesReachableFromBAS(
 				//gate.~beToChildren.remove( be ); //Somehow remove kills the process!
 			}
 		}
-//		("Remaining keys containing single child in gate "+gate.id).println();
+/*
+		("Gate " + gate.id + " is reachable from BE: ").println();
 		for ( be in gate.~beToChildrenFinal.keySet() ) {
 			var list = gate.~beToChildren.get( be );
-//			list.size().println("______  ");
+			(" " + be.id + " via -> ").print();
+			for (be2 in list) {
+				(" " + be2.id).print();
+			}
+			"".println();
 		}
-		
+*/		
 	}
 	
-	// create a map from BeId to child
-	
-	
-	
-	
-
 }
 
 /**********************************EOF****************************************/
