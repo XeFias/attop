@@ -28,7 +28,17 @@
 			modelfile="models/UATV_sand.model"
 			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
 			read="true" store="false" />
-		
+ 
+		<epsilon.emf.loadModel name="UATS_racecondition"
+			modelfile="models/UATS_racecondition.model"
+			metamodelfile="${basedir}/../data/models/UATMM_structure.ecore"
+			read="true" store="false" />
+
+		<epsilon.emf.loadModel name="UATV_racecondition"
+			modelfile="models/UATV_racecondition.model"
+			metamodelfile="${basedir}/../data/models/UATMM_values.ecore"
+			read="true" store="false" />
+
 		<epsilon.emf.loadModel name="IMA"
 			modelfile="models/IMA_and.model"
 			metamodelfile="${basedir}/../data/models/iMA.ecore"
@@ -39,12 +49,18 @@
 			metamodelfile="${basedir}/../data/models/iMA.ecore"
 			read="false" store="true" />
 
+		<epsilon.emf.loadModel name="IMA_racecondition"
+			modelfile="models/IMA_racecondition.model"
+			metamodelfile="${basedir}/../data/models/iMA.ecore"
+			read="false" store="true" />
+
+<!--____________  eunits ________________ -->
 		<epsilon.eunit src="IntegrationTests.eunit">
 			<model ref="UATS" as="UATS"/>
 			<model ref="UATV" as="UATV" />
 			<model ref="IMA" />
 		</epsilon.eunit>
-
+		
 		<epsilon.eunit src="IteratorTests.eunit">
 			<parameter name="inputModel" value="default"/>
 			<model ref="UATS" as="UATS" />
@@ -77,12 +93,17 @@
 			<model ref="IMA_sand" as="IMA"  />
 		</epsilon.eunit>
 
-		<!--
 		<epsilon.eunit src="BuildAutomatonTests.eunit">
 			<model ref="UATS" as="UATS" />
 			<model ref="UATV" as="UATV" />
 			<model ref="IMA" />
 		</epsilon.eunit>
-		-->
+
+		<epsilon.eunit src="BuildAutomatonTests.eunit">
+			<model ref="UATS_racecondition" as="UATS" />
+			<model ref="UATV_racecondition" as="UATV" />
+			<model ref="IMA_racecondition" as="IMA" />
+		</epsilon.eunit>
+
 	</target>
 </project>
