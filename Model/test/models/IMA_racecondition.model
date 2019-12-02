@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="ASCII"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:iMA="iMA">
+  <iMA:State name="rootState" goalGateId="A">
+    <outgoing target="/3" beId="D" newStatus="SUCCESS"/>
+    <outgoing target="/10" beId="E" newStatus="SUCCESS"/>
+    <outgoing target="/19" beId="F" newStatus="SUCCESS"/>
+    <outgoing target="/24" beId="D" newStatus="FAILED"/>
+    <outgoing target="/23" beId="D" newStatus="FAILED"/>
+    <outgoing target="/25" beId="E" newStatus="FAILED"/>
+    <outgoing target="/26" beId="F" newStatus="FAILED"/>
+    <bes key="E"/>
+    <bes key="F"/>
+    <bes key="D"/>
+    <gates key="A"/>
+    <gates key="B"/>
+    <gates key="C"/>
+  </iMA:State>
+  <iMA:State name="SUCCESS" incoming="/5/@outgoing.0" goalGateId="A">
+    <bes value="DONTCARE" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="DONTCARE" key="C"/>
+    <gates value="SUCCESS" key="A"/>
+  </iMA:State>
+  <iMA:State name="FAIL" incoming="/6/@outgoing.0 /7/@outgoing.0 /8/@outgoing.0 /9/@outgoing.0 /12/@outgoing.0 /11/@outgoing.0 /14/@outgoing.0 /16/@outgoing.0 /17/@outgoing.0 /18/@outgoing.0 /20/@outgoing.0 /21/@outgoing.0 /22/@outgoing.0" goalGateId="A">
+    <bes value="DONTCARE" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="DONTCARE" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.0" goalGateId="A">
+    <outgoing target="/4" beId="E" newStatus="SUCCESS"/>
+    <outgoing target="/7" beId="E" newStatus="FAILED"/>
+    <outgoing target="/8" beId="F" newStatus="SUCCESS"/>
+    <outgoing target="/9" beId="F" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes key="E"/>
+    <bes key="F"/>
+    <gates key="B"/>
+    <gates key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/3/@outgoing.0 /10/@outgoing.0" goalGateId="A">
+    <outgoing target="/5" beId="F" newStatus="SUCCESS"/>
+    <outgoing target="/6" beId="F" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes key="F"/>
+    <gates value="SUCCESS" key="B"/>
+    <gates key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/4/@outgoing.0" goalGateId="A">
+    <outgoing target="/1" beId="SUCCESS" newStatus="SUCCESS"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="SUCCESS" key="B"/>
+    <gates value="SUCCESS" key="C"/>
+    <gates value="SUCCESS" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/4/@outgoing.1" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="FAILED" key="F"/>
+    <gates value="SUCCESS" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/3/@outgoing.1" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="FAILED" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="DONTCARE" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/3/@outgoing.2 /19/@outgoing.0" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="SUCCESS" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/3/@outgoing.3" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="FAILED" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.1" goalGateId="A">
+    <outgoing target="/4" beId="D" newStatus="SUCCESS"/>
+    <outgoing target="/12" beId="D" newStatus="FAILED"/>
+    <outgoing target="/11" beId="D" newStatus="FAILED"/>
+    <outgoing target="/13" beId="F" newStatus="SUCCESS"/>
+    <outgoing target="/18" beId="F" newStatus="FAILED"/>
+    <bes key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes key="F"/>
+    <gates key="B"/>
+    <gates key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/10/@outgoing.2" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="R" incoming="/10/@outgoing.1" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/10/@outgoing.3 /19/@outgoing.3" goalGateId="A">
+    <outgoing target="/15" beId="D" newStatus="SUCCESS"/>
+    <outgoing target="/14" beId="D" newStatus="SUCCESS"/>
+    <outgoing target="/16" beId="D" newStatus="FAILED"/>
+    <outgoing target="/17" beId="D" newStatus="FAILED"/>
+    <bes key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates key="B"/>
+    <gates key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/13/@outgoing.1" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="SUCCESS" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="SUCCESS" key="B"/>
+    <gates value="SUCCESS" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="R" incoming="/13/@outgoing.0" goalGateId="A">
+    <bes value="SUCCESS" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="SUCCESS" key="B"/>
+    <gates value="SUCCESS" key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/13/@outgoing.2" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="R" incoming="/13/@outgoing.3" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/10/@outgoing.4" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="DONTCARE" key="D"/>
+    <bes value="SUCCESS" key="E"/>
+    <bes value="FAILED" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.2" goalGateId="A">
+    <outgoing target="/8" beId="D" newStatus="SUCCESS"/>
+    <outgoing target="/20" beId="D" newStatus="FAILED"/>
+    <outgoing target="/21" beId="D" newStatus="FAILED"/>
+    <outgoing target="/13" beId="E" newStatus="SUCCESS"/>
+    <outgoing target="/22" beId="E" newStatus="FAILED"/>
+    <bes key="D"/>
+    <bes key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates key="B"/>
+    <gates key="C"/>
+    <gates key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/19/@outgoing.1" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="R" incoming="/19/@outgoing.2" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/19/@outgoing.4" goalGateId="A">
+    <outgoing target="/2" beId="FAILED" newStatus="FAILED"/>
+    <bes value="DONTCARE" key="D"/>
+    <bes value="FAILED" key="E"/>
+    <bes value="SUCCESS" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="DONTCARE" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.4" goalGateId="A">
+    <outgoing beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+  <iMA:State name="R" incoming="/0/@outgoing.3" goalGateId="A">
+    <outgoing beId="FAILED" newStatus="FAILED"/>
+    <bes value="FAILED" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.5" goalGateId="A">
+    <outgoing beId="FAILED" newStatus="FAILED"/>
+    <bes value="DONTCARE" key="D"/>
+    <bes value="FAILED" key="E"/>
+    <bes value="DONTCARE" key="F"/>
+    <gates value="FAILED" key="B"/>
+    <gates value="DONTCARE" key="C"/>
+    <gates value="FAILED" key="A"/>
+  </iMA:State>
+  <iMA:State name="Generated" incoming="/0/@outgoing.6" goalGateId="A">
+    <outgoing beId="FAILED" newStatus="FAILED"/>
+    <bes value="DONTCARE" key="D"/>
+    <bes value="DONTCARE" key="E"/>
+    <bes value="FAILED" key="F"/>
+    <gates value="DONTCARE" key="B"/>
+    <gates value="FAILED" key="C"/>
+    <gates value="SAFE" key="A"/>
+  </iMA:State>
+</xmi:XMI>

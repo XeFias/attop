@@ -3,7 +3,7 @@ import "../data/transformations/IntermediateState.eol";
 import "../data/transformations/IntermediateStateMap.eol";
 
 @test
-operation Test_buildIMAFromAnd() {
+operation Test_buildIMA() {
 
 	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
 	var rootNode	: UATS!Node 		= attackTree.Root;

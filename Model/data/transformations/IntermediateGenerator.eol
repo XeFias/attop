@@ -57,7 +57,6 @@ operation generateIntermediateAutomata(
 			}
 		}
 	}
-	// TODO: find all success and fail goals.
 	return Sequence{ rootState, successGoalState, failGoalState };
 }
 
@@ -95,7 +94,8 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	var doubleStates:Set(IMA!State) = Set{};
 
 	for ( newState in newStates ) {
-		// Propogate SAFE Statuses.
+
+		// Propogate SAFE Statuses. ()
 		newState.setSafeStatuses( bottomUp.copyIterator(), be );
 		// Propogate DONTCARE Statuses.
 		newState.propogateDontCareStatuses( topDown.copyIterator() );
@@ -135,7 +135,7 @@ operation IMA!State recur2_buildIMA(
 							gStateMap:Map(Integer, Sequence(IMA!State)),
 							bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
 							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)),
-							finalStates:Map(Any,IMA!State), /* Any is StatusType */
+							finalStates:Map(Any,IMA!State), /* Any = StatusType */
 							rootNode:UATS!Node ) {
 
 	// Get remaining BEs which are still OPERATIONAL.
@@ -195,7 +195,7 @@ operation IMA!State processPacketOfWork(
 	bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 	prevState:IMA!State, 
 	be		:UATS!Node )
-: Set(Sequence) { // Set { Sequence { newState, bottomUp.copyIterator(), be } };
+: Set(Sequence) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
 	var r:Set(Sequence(Any)) = Set{};
 
 	while ( bottomUp.hasNext() ) {
@@ -207,9 +207,11 @@ operation IMA!State processPacketOfWork(
 		} else if ( newStatuses.size() > 1 ) {
 			var i = 0;
 			for ( newStatus in newStatuses ) {
-				if (i == 0) {
+				if (i == 0) { // Continue work on using the first status produced. 
 					self.setNodeStatus(gate, newStatus); 
-				} else {
+				} else { // The rest of the possible statuses for this node 
+						 // generates new half processed states which must be 
+						 // processed in the future.
 					var newNextState = self.copyState( "R" );
 					var bottomUpCopy = bottomUp.copyIterator();
 					newNextState.setNodeStatus(gate, newStatus);
@@ -220,8 +222,8 @@ operation IMA!State processPacketOfWork(
 		} else {
 			throw ("When calculating the status of a Gate " + gate.id + " returned no status.");
 		}
-	}
-	return r;
+	} // State 'self' is processed in the bottom-up direction 
+	return r; // New work packets due to race condition.
 }
 
           // Gate.
@@ -231,7 +233,8 @@ operation UATS!Node calculateStatusInState( state:IMA!State, prevState:IMA!State
 	switch (self.connector.type().name) {
 		case "AND"	:{ r.add(state.calculateStatusOfAND(self)); }
 		case "OR"	:{ r.add(state.calculateStatusOfOR(self)); }	
-		case "SAND"	:{ r.addAll(state.calculateStatusOfSAND(self, prevState, be)); }
+		case "SAND"	:{ r.addAll(state.calculateStatusOfSequentialGate(self, prevState, be )); }
+		case "SOR"	:{ r.addAll(state.calculateStatusOfSequentialGate(self, prevState, be )); }
 		default : throw (self.children.println("process UNKNOWN Gate!____" 
 						+ self.connector.gate.id));
 	}
@@ -245,11 +248,11 @@ operation IMA!State calculateStatusOfAND( gate:UATS!Node )
 		return IMA!StatusType#SUCCESS;
 	} else if ( gate.children.exists( child | 
 					self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
-		// If any is FAILED return FAILED,
+		// If any has failed is FAILED return FAILED,
 		return IMA!StatusType#FAILED;
 	} else if ( gate.children.exists( child | 
 					self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-		// If any is FAILED return FAILED,
+		// If any is SAFE return SAFE,
 		return IMA!StatusType#SAFE;
 	} else {
 		// Keep gate Operational.
@@ -276,15 +279,14 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 }
 
 // TODO: possible race conditions implemented in DFTCalc and STORM?
-operation IMA!State calculateStatusOfSAND( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
+operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
 : Set(Any) /* Set(IMA!StatusType) */ {
 	var statuses = Set{};
 	//	gate.~beToChildrenFinal: describes via which children of the gate BE can
 	//  reach the gate. It only mentions BEs which can reach the gate via multiple
 	//  children resulting in race conditions. This information is only of importance
 	//  to SAND and SOR gates.
-	// 
-	
+
 	var bes = gate.~beToChildrenFinal.keySet();
 	if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null.
 		// Because 'be' can reach this gate via multiple children activation of
@@ -301,15 +303,24 @@ operation IMA!State calculateStatusOfSAND( gate:UATS!Node, prevState:IMA!State, 
 			}
 			// 3. Calculate the new state by check condition of children (forAll( )).
 			// 4. Add result to return Set{}.
-			var r2 = tempState.calculatedStatusOfSAND( gate );
-			statuses.add( r2 );
+			switch (gate.connector.type().name) {
+				case "SAND"	:{ statuses.add(tempState.calculatedStatusOfSAND( gate )); }
+				case "SOR"	:{ statuses.add(tempState.calculatedStatusOfSOR( gate )); }
+				default : throw (self.children.println("process UNKNOWN Gate!____" 
+								+ self.connector.gate.id));
+			}
 
 			// remove newly created temperary status.			
 			delete tempState;			
 		}
 	} else {
 		// No race-condition. 
-		statuses.add( self.calculatedStatusOfSAND( gate ) );
+		switch (gate.connector.type().name) {
+			case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
+			case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
+			default : throw (self.children.println("process UNKNOWN Gate!____" 
+							+ self.connector.gate.id));
+		}
 	}
 	return statuses;
 }
@@ -331,9 +342,8 @@ operation IMA!State calculatedStatusOfSAND( gate:UATS!Node )
 	return IMA!StatusType#OPERATIONAL;
 }
 
-operation IMA!State calculateStatusOfSOR( gate:UATS!Node )
+operation IMA!State calculatedStatusOfSOR( gate:UATS!Node )
 : Any /*IMA!StatusType*/ {
-	throw("TODO");
 	if ( self.isActivatedFromLeft( gate.children ) == false ) {
 		return IMA!StatusType#SAFE;
 	}
@@ -391,33 +401,29 @@ operation IMA!State setSafeStatuses (
 	while ( bottomUp.hasNext() ) {
 		var gate = bottomUp.next();
 		if ( self.getNodeStatus(gate) <> IMA!StatusType#OPERATIONAL ) {
-			// gate already changed.
+			// Gate already changed.
 		} else {
-			// TODO: Current testcasses never trigger this condition.
 			switch ( gate.connector.type().name ) {
-				case "AND"	:{	var status = self.calculateStatusOfAND( gate );
-								if ( ( status == IMA!StatusType#FAILED ) 
-									or ( status == IMA!StatusType#SAFE ) ) {
-									self.setNodeStatus(gate, IMA!StatusType#SAFE);
-								}
-								// TODO: Can this function only set statuses to SAFE?
+				case "AND"	:{	var status = self.calculateStatusOfAND( gate ); }	
+				case "OR"	:{	var status = self.calculateStatusOfOR( gate ); }	
+				case "SAND"	:{	// NOTE: When a race condition has occured 
+								// recalculating the status of a SAND could 
+								// potentially generate an excisting state 
+								// which will subsequantly be removed. 
+								var status = self.calculatedStatusOfSAND( gate );
 							}	
-				case "OR"	:{	var status = self.calculateStatusOfOR( gate );
-								if ( ( status == IMA!StatusType#FAILED ) 
-									or ( status == IMA!StatusType#SAFE ) ) {
-									self.setNodeStatus(gate, IMA!StatusType#SAFE);
-								}
+				case "SOR"	:{	// NOTE: When a race condition has occured 
+								// recalculating the status of a SAND could 
+								// potentially generate an excisting state 
+								// which will subsequantly be removed. 
+								var status = self.calculatedStatusOfSOR( gate );
 							}	
-				case "SAND"	:{	// TODO: process new states due to race condition.
-								var statuses = self.calculateStatusOfSAND( gate, null, be );
-								var status = statuses.first();
-								if ( statuses.size() > 1 ){ throw("TODO: setSafeStatuses returned mutiple results.");}
-								if ( ( status == IMA!StatusType#FAILED ) 
-									or ( status == IMA!StatusType#SAFE ) ) {
-									self.setNodeStatus(gate, IMA!StatusType#SAFE);
-								}
-							}	
+
 				default : throw (self.children.println("process UNKNOWN Gate!____" + gate.connector.gate.id));
+			}
+			if ( ( status == IMA!StatusType#FAILED ) 
+				or ( status == IMA!StatusType#SAFE ) ) {
+				self.setNodeStatus(gate, IMA!StatusType#SAFE);
 			}
 		}
 	}
@@ -452,68 +458,47 @@ operation markGatesReachableFromBAS(
 	while( bottomUp.hasNext() ) {
 		var gate = bottomUp.next(); 
 		gate.~reachableBy = Set{};
-//		(" gate id = " + gate.id + " <-").print();
 		for ( child in gate.children ) {
-//			" | ".print();
 			gate.~reachableBy.addAll( child.~reachableBy );
-//			for (be in gate.~reachableBy) {be.id.print(" ");}
 		}
-		"".println();
 		// At this point this gate.~reachableBy contains all the BEs which are
 		// able to reach this gate.
 		// Next create a map which maps BEs to children.
-//		(". at gate "+ gate.id).println();
 		gate.~beToChildren = Map{}; /* Map(UATS!Node,Sequence(UATS!Node)) */ 
 		for ( be in gate.~reachableBy ) {
-//			("..create map for be= "+ be.id ).println();
 			for ( child in gate.children ){
-//				child.id.println("...testing child = ");
 				if ( child.~reachableBy.includes( be ) ) {
-//					("....Adding " + child.id + " to " + be.id).println();
 					// add child to list sources reachable by BE.
 					if ( gate.~beToChildren.containsKey(be) ){
-//						".....Add to existing list__".println();
+						// Add to existing list;
 						var list = gate.~beToChildren.get(be);
 						list.add(child);
 						gate.~beToChildren.put( be, list );					
 					} else { // key does not jet exist. So initialize.
-//						".....Create list__".println();
 						var list = Set{ child };
 						gate.~beToChildren.put( be, list );
 					}
 				} else {
-//					child.id.println("...not child = ");
+					// Not child
 				}
 			}
 		}
-//		("Gate "+gate.id+" done.").println();
 		// Remove all BEs keys from Map (for this gate) which only have one
 		// Child for a given BE.
-//		("Removing keys containing single child in gate "+gate.id).println();
-		
 		gate.~beToChildrenFinal = Map{};
 				
 		for ( be in gate.~beToChildren.keySet() ) {
 			var list = gate.~beToChildren.get( be );
 			if ( list.size() > 1 ){
-//				"Add to final Map".println();
 				gate.~beToChildrenFinal.put( be, list);
-				//gate.~beToChildren.remove( be ); //Somehow remove kills the process!
 			}
 		}
-/*
-		("Gate " + gate.id + " is reachable from BE: ").println();
-		for ( be in gate.~beToChildrenFinal.keySet() ) {
-			var list = gate.~beToChildren.get( be );
-			(" " + be.id + " via -> ").print();
-			for (be2 in list) {
-				(" " + be2.id).print();
-			}
-			"".println();
-		}
-*/	
+		delete gate.~beToChildren;
 	}
-	
+	// Label all children using there id.
+	for ( be in BEs ) {
+		delete be.~reachableBy;
+	}
 }
 
 /**********************************EOF****************************************/

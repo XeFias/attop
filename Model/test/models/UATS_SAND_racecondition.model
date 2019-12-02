@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ASCII"?>
+<nl.utwente.ewi.fmt.UATMM:AttackTree xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:nl.utwente.ewi.fmt.UATMM="ecore:UATMM_structure" Root="A">
+  <Nodes children="B C" id="A" label="A">
+    <connector xsi:type="nl.utwente.ewi.fmt.UATMM:SAND"/>
+  </Nodes>
+  <Nodes children="E D" parents="A" id="B" label="B">
+    <connector xsi:type="nl.utwente.ewi.fmt.UATMM:AND"/>
+  </Nodes>
+  <Nodes children="D F" parents="A" id="C" label="C">
+    <connector xsi:type="nl.utwente.ewi.fmt.UATMM:AND"/>
+  </Nodes>
+  <Nodes parents="B C" id="D" label="D"/>
+  <Nodes parents="B" id="E" label="E"/>
+  <Nodes parents="C" id="F" label="F"/>
+</nl.utwente.ewi.fmt.UATMM:AttackTree>

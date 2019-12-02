@@ -1,0 +1,8 @@
+toplevel "A";
+"A" sor "B" "C";
+"B" and "E" "D";
+"C" and "D" "F";
+
+"D" cost=10 lambda=0.6;
+"E" cost=10 lambda=0.5;
+"F" cost=10 lambda=0.7;
