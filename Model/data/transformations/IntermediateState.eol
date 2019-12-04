@@ -147,7 +147,6 @@ operation IMA!State setNodeStatus( node:UATS!Node, value ) { // value is StatusT
 
 operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State ) 
 		: IMA!Disruption {
-		
 	// Prevent duplicate link.		
 	for ( disruption in self.outgoing ) {
 		if (	( disruption.newStatus == change )
@@ -159,11 +158,14 @@ operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State )
 
 	var d1 : IMA!Disruption = new IMA!Disruption;
 	if (be = null) {
-		d1.beId = change.toString();
-		//("setDisruption Create edge from " + self.toString(true) + " to final state " + target.toString(true) + " with edge " + change).println();
+		switch (change) {
+			case IMA!StatusType#SUCCESS : d1.beId =  IMA!GoalState#SUCCESS.toString();
+			case IMA!StatusType#FAILED : d1.beId =  IMA!GoalState#FAIL.toString();
+			default : throw( "Unexpected case of " + change );
+		}
+		//d1.beId = change.toString();
 	} else {
 		d1.beId = be.id;
-		//("setDisruption Create edge from " + self.toString(true) + " to " + target.toString(true) + " with edge " +  be + " and new be status " + change).println();
 	}
 	d1.~be = be;
 	d1.source = self;
@@ -171,6 +173,5 @@ operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State )
 	d1.newStatus = change;
 	return d1;
 }
-
 
 /**********************************EOF****************************************/

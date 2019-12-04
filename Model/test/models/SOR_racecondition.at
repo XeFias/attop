@@ -3,6 +3,6 @@ toplevel "A";
 "B" and "E" "D";
 "C" and "D" "F";
 
-"D" cost=10 lambda=0.6;
-"E" cost=10 lambda=0.5;
-"F" cost=10 lambda=0.7;
+"D" cost=10 lambda=0.6 prob=0.5;
+"E" cost=10 lambda=0.5 prob=0.4;
+"F" cost=10 lambda=0.7 prob=0.3;

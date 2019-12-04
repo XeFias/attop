@@ -2,16 +2,17 @@ import "../data/transformations/IntermediateGenerator.eol";
 
 @test
 operation integrationTest_DefaultTree(){
+	var probabilityValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
 	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
 	var rootNode	: UATS!Node 		= attackTree.Root;
 	var nodes		: Set(UATS!Node) 	= attackTree.Nodes;
 	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
 	var gates 							= nodes.excludingAll(BEs);
 
-	var IMA	 		: Sequence(IMA!State)= generateIntermediateAutomata(attackTree, rootNode);
+	var IMA	 		: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, probabilityValues, rootNode);
 	
 	var rootState	: IMA!State = constructInitialState("s0", nodes, rootNode);
 
-	assertEquals(rootState.toString(false), IMA.first().toString(false));
+	assertEquals(rootState.toString(false), IMA.rootState.toString(false));
 	// TODO: Perk determine string of expected end state
 }

@@ -2,29 +2,20 @@
 	import "IntermediateGenerator.eol";
 
 	var attackTree		: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
-	var attackTreeValues: UATV!AttackTree	= UATV!AttackTree.allInstances().first();
+	var probabilityValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
 	var rootNode		: UATS!Node 		= UATS!AttackTree.allInstances().first().Root;
 	
-	generateIntermediateAutomata(attackTree, rootNode);
 	
-		
-	"_________".println();
-	var nodeParamMap : Map;
-	var attackTree : UATS!AttackTree = UATS!AttackTree.allInstances().first();
-	for(node : UATS!Node in UATS!Node.allInstances()){
-		nodeParamMap.put(node.id, new Map());
-	}
-	for(domain : UATV!Domain in UATV!Domain.allInstances()){
-		for(attribute : UATV!Attribute in domain.attributes){
-			nodeParamMap.get(attribute.node.id).put(domain.name, attribute.value);
-		}
-	}
-	var bottomUp : Sequence = Sequence {1,2,3};
+	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
 
-%]
-TODO 1:
-des ("0,[%=attackTree.Root.id%],4)";
-[%
+	// Add all rates
+	for (probabilityValue in probabilityValues) {
+		var a:UATV!Node = probabilityValue.node;
+		IMA.rates.put( probabilityValue.node.id, probabilityValue.value.value );
+	}
+
+	// TODO: Use instanceOf to id gatetypes AND OR SAND SOR.
+	
 	//or(node in UATS!Node.allInstances()){
 	//	out.print('"'+node.id+'"');
 	//	if(node.connector <> null){

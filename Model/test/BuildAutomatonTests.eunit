@@ -5,6 +5,8 @@ import "../data/transformations/IntermediateStateMap.eol";
 @test
 operation Test_buildIMA() {
 
+	//var attackTreeValues: UATV!AttackTree	= UATV!AttackTree.allInstances().first();
+	var probabilityValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
 	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
 	var rootNode	: UATS!Node 		= attackTree.Root;
 	var nodes		: Set(UATS!Node)	= attackTree.Nodes;
@@ -12,10 +14,7 @@ operation Test_buildIMA() {
 	// Expected result.
 	//var ima_expected = createExpectedResultForANDAttackTree();
 	
-	var IMA	: Sequence(IMA!State) = generateIntermediateAutomata(attackTree, rootNode);
-
-	// Assert the result.
-	
+	var IMA	: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, probabilityValues, rootNode);
 }
 
 @test
@@ -28,9 +27,7 @@ operation HeightPerGate_DefaultTree() {
 	var bottomUpIterator= createIterator(bottomUp);
 	
 	markGatesReachableFromBAS( bottomUpIterator, BEs );
-	
 }
-
 
 operation createExpectedResultForANDAttackTree() 
 		: Sequence(IMA!State) {

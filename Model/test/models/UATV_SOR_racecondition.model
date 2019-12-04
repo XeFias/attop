@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="ASCII"?>
 <xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:nl.utwente.ewi.fmt.UATMM="ecore:UATMM_values">
-  <nl.utwente.ewi.fmt.UATMM:Domain name="lambda" purpose="/2" valueType="/3">
+  <nl.utwente.ewi.fmt.UATMM:Domain name="prob" purpose="/3" valueType="/4">
+    <attributes>
+      <value xsi:type="nl.utwente.ewi.fmt.UATMM:RealValue" value="0.5"/>
+      <node href="UATS_SOR_racecondition.model#D"/>
+    </attributes>
+    <attributes>
+      <value xsi:type="nl.utwente.ewi.fmt.UATMM:RealValue" value="0.4"/>
+      <node href="UATS_SOR_racecondition.model#E"/>
+    </attributes>
+    <attributes>
+      <value xsi:type="nl.utwente.ewi.fmt.UATMM:RealValue" value="0.3"/>
+      <node href="UATS_SOR_racecondition.model#F"/>
+    </attributes>
+  </nl.utwente.ewi.fmt.UATMM:Domain>
+  <nl.utwente.ewi.fmt.UATMM:Domain name="lambda" purpose="/5" valueType="/4">
     <attributes>
       <value xsi:type="nl.utwente.ewi.fmt.UATMM:RealValue" value="0.6"/>
       <node href="UATS_SOR_racecondition.model#D"/>
@@ -14,7 +28,7 @@
       <node href="UATS_SOR_racecondition.model#F"/>
     </attributes>
   </nl.utwente.ewi.fmt.UATMM:Domain>
-  <nl.utwente.ewi.fmt.UATMM:Domain name="cost" purpose="/4" valueType="/3">
+  <nl.utwente.ewi.fmt.UATMM:Domain name="cost" purpose="/6" valueType="/4">
     <attributes>
       <value xsi:type="nl.utwente.ewi.fmt.UATMM:RealValue" value="10.0"/>
       <node href="UATS_SOR_racecondition.model#D"/>
@@ -28,7 +42,8 @@
       <node href="UATS_SOR_racecondition.model#F"/>
     </attributes>
   </nl.utwente.ewi.fmt.UATMM:Domain>
-  <nl.utwente.ewi.fmt.UATMM:TimePurpose timeType="EXPONENTIAL"/>
+  <nl.utwente.ewi.fmt.UATMM:ProbabilityPurpose/>
   <nl.utwente.ewi.fmt.UATMM:RealType/>
+  <nl.utwente.ewi.fmt.UATMM:TimePurpose timeType="EXPONENTIAL"/>
   <nl.utwente.ewi.fmt.UATMM:CostPurpose/>
 </xmi:XMI>

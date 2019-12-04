@@ -3,16 +3,18 @@ import "IntermediateState.eol";
 import "IntermediateStateMap.eol";
 
 operation generateIntermediateAutomata( 
-			attackTree:UATS!AttackTree, 
+			attackTree:UATS!AttackTree,
+			probabilityValues:Set(UATV!attributes), // TODO:
 			rootNode:UATS!Node ) 
-		: Sequence(IMA!State) {
+		: IMA!InterimAutomaton {
+	
 	// Assotiate Gates to graph height (from bottom to top) and depth (from top to bottom)  
 	var nodes	: Set(UATS!Node) = attackTree.Nodes;
 	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
 	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
 	var topDown	: Sequence(UATS!Node) = fromLevelMapToSequence(calculateDepthOfGates(rootNode));
 	for ( be in BEs ) { topDown.add(be); } // Add BEs to the tail of the topDown iterator.
-	
+
 	var gates 			= nodes.excludingAll(BEs);
 	var bottomUpIterator= createIterator(bottomUp);
 	var topDownIterator	= createIterator(topDown);
@@ -21,7 +23,7 @@ operation generateIntermediateAutomata(
 	var successGoalState= rootState.createSuccesGoal();
 	var failGoalState	= rootState.createFailGoal();
 	var finalStates		= Map{	IMA!GoalState#SUCCESS	= successGoalState,
-								IMA!GoalState#FAILED	= failGoalState};
+								IMA!GoalState#FAIL	= failGoalState};
 	gStateMap.put(rootState);
 	gStateMap.put(successGoalState);
 	gStateMap.put(failGoalState);
@@ -46,18 +48,35 @@ operation generateIntermediateAutomata(
 				var statusType = state.getNodeStatus( rootNode );
 				if ( statusType <> IMA!StatusType#OPERATIONAL ) {
 					switch (statusType) {
-						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get("success") ); }
-						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get("failed") ); }
-						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get("failed") ); }
+						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
+						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
+						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
 						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
 						default : throw (rootState.children.println("unknown StatusType " + statusType));
 					}
 				}
-
 			}
 		}
 	}
-	return Sequence{ rootState, successGoalState, failGoalState };
+
+	// Uniquely number all states.
+	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
+	generateIDForAllStates( disruptions );
+
+	// TODO: move the code which add the rates to de IMA here when the problem
+	//  is solved in which eunit is not able to handel models with dependencies.
+	
+	var IMA = new IMA!InterimAutomaton;	
+	IMA.rootState = rootState;
+	IMA.successGoal = successGoalState;
+	IMA.failureGoal = failGoalState;
+
+	var states:Sequence(IMA!State) = IMA!State.allInstances();
+	for ( state in states ) {
+		IMA.states.add( state );
+	}
+
+	return IMA;
 }
 
 operation fromLevelMapToSequence( 
@@ -159,8 +178,8 @@ operation IMA!State recur2_buildIMA(
 					// ? Does this link already exist.
 					switch ( statusType ) {
 						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
-						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAILED) ); }
-						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAILED) ); }
+						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
+						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
 						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
 						default : throw (self.children.println("unknown StatusType " + statusType));
 					}
@@ -497,7 +516,33 @@ operation markGatesReachableFromBAS(
 	}
 	// Label all children using there id.
 	for ( be in BEs ) {
-		delete be.~reachableBy;
+		// TODO: This seems to delete be.id which is required?
+		// delete be.~reachableBy; 
+	}
+}
+
+operation generateIDForAllStates ( disruptions:Sequence(IMA!Disruption) ) {
+	var id:Integer = 1;
+	for (disruption:IMA!Disruption in disruptions) {
+		// set id of source state in not set 
+		if ( disruption.source.id == 0 ) {
+			disruption.source.id = id;
+			if ( (disruption.source.name <> "FAIL") 
+				and (disruption.source.name <> "SUCCESS")) {
+				disruption.source.name = id.toString();
+			}
+			id++;
+		}
+
+		// set id of target state in not set
+		if ( disruption.target.id == 0 ) {
+			disruption.target.id = id;
+			if ( (disruption.target.name <> "FAIL") 
+				and (disruption.target.name <> "SUCCESS")) {
+				disruption.target.name = id.toString();
+			}
+			id++;
+		}
 	}
 }
 

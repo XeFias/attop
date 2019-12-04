@@ -1,0 +1,26 @@
+[%
+  	var javaDate = new Native("java.util.Date");
+	javaDate.toString().println("Starting IMA2AUT generation: ");
+
+	var IMA = IMA!InterimAutomaton.allInstances().first();
+	var disruptions = IMA!Disruption.allInstances();
+	var states = IMA!State.allInstances();
+	IMA.rates.keySet().println("rates key set____");
+
+%]
+des (1, [%=disruptions.size()%], [%=states.size()%])
+[% for (disruption in disruptions) { %]
+	[% if( IMA.rates.get(disruption.beId) == null ) { %]
+([%=disruption.source.id %], [%=disruption.beId %], [%=disruption.target.id %])
+	[% } else { %]
+([%=disruption.source.id %], "rate [%=IMA.rates.get(disruption.beId) %]", [%=disruption.target.id %])
+	[% }%]
+[% } %] [%
+// Example:
+//des (0, 4, 4)
+//(0, "rate 0.7", 3)
+//(0, "rate 0.6", 2)
+//(1, "FAIL", 3)
+//(2, "rate 0.7", 1)
+
+%]
