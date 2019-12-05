@@ -18,6 +18,7 @@ operation constructInitialState(
 	var gates 	: Set(UATS!Node) = nodes.excludingAll(BEs);
 
 	var s0 : IMA!State = new IMA!State;
+	s0.id = 0;
 	s0.name = name;
 	s0.goalGateId = goalGate.id;
 	for (be in BEs) {
@@ -38,6 +39,7 @@ operation IMA!State createSuccesGoal()
 		: IMA!State {
 	var state : IMA!State;
 	state = self.copyState( "SUCCESS" );
+	state.id = 1; 
 	state.setAllStatuses( IMA!StatusType#DONTCARE );
 	state.gates.put( self.goalGateId, IMA!StatusType#SUCCESS );
 	return state;
@@ -47,6 +49,7 @@ operation IMA!State createFailGoal()
 		: IMA!State {
 	var state : IMA!State;
 	state = self.copyState( "FAIL" );
+	state.id = 2;
 	state.setAllStatuses( IMA!StatusType#DONTCARE );
 	state.gates.put( self.goalGateId, IMA!StatusType#FAILED );
 	return state;
@@ -126,6 +129,7 @@ operation IMA!State copyState()
 		s.gates.put(key, value);
 	}
 	s.name = self.name;
+	s.id = -1;
 	return s;
 }
 

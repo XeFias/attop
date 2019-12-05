@@ -8,7 +8,7 @@
 	IMA.rates.keySet().println("rates key set____");
 
 %]
-des (1, [%=disruptions.size()%], [%=states.size()%])
+des (0, [%=disruptions.size()%], [%=states.size()%])
 [% for (disruption in disruptions) { %]
 	[% if( IMA.rates.get(disruption.beId) == null ) { %]
 ([%=disruption.source.id %], [%=disruption.beId %], [%=disruption.target.id %])

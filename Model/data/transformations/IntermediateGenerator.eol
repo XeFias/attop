@@ -521,24 +521,26 @@ operation markGatesReachableFromBAS(
 	}
 }
 
-operation generateIDForAllStates ( disruptions:Sequence(IMA!Disruption) ) {
-	var id:Integer = 1;
+operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
+	var id:Integer = 3;
+	
 	for (disruption:IMA!Disruption in disruptions) {
-		// set id of source state in not set 
-		if ( disruption.source.id == 0 ) {
+		// set id of source state in not set
+	
+		if ( disruption.source.id == -1 ) {
 			disruption.source.id = id;
-			if ( (disruption.source.name <> "FAIL") 
-				and (disruption.source.name <> "SUCCESS")) {
+			if ( ( disruption.source.name <> IMA!GoalState#FAIL.toString() ) 
+				and ( disruption.source.name <> IMA!GoalState#SUCCESS.toString() ) ) {
 				disruption.source.name = id.toString();
 			}
 			id++;
 		}
 
 		// set id of target state in not set
-		if ( disruption.target.id == 0 ) {
+		if ( disruption.target.id == -1 ) {
 			disruption.target.id = id;
-			if ( (disruption.target.name <> "FAIL") 
-				and (disruption.target.name <> "SUCCESS")) {
+			if ( ( disruption.target.name <> IMA!GoalState#FAIL.toString() ) 
+				and ( disruption.target.name <> IMA!GoalState#SUCCESS.toString() ) ) {
 				disruption.target.name = id.toString();
 			}
 			id++;
