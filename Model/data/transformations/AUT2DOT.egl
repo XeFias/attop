@@ -1,0 +1,36 @@
+[%
+  	var javaDate = new Native("java.util.Date");
+	javaDate.toString().println("Starting IMA2AUT generation: ");
+
+	var IMA = IMA!InterimAutomaton.allInstances().first();
+	var disruptions = IMA!Disruption.allInstances();
+	var states = IMA!State.allInstances();
+	IMA.rates.keySet().println("rates key set____");
+
+%]
+digraph BCG {
+graph [ dpi = 150 ];
+center = TRUE;
+node [shape = circle];
+0 [peripheries = 2];
+[% for (disruption in disruptions) { %]
+	[% if( IMA.rates.get(disruption.beId) == null ) { %]
+[%=disruption.source.id %] -> [%=disruption.target.id %] [label = "[%=disruption.beId %]"];
+	[% } else { %]
+[%=disruption.source.id %] -> [%=disruption.target.id %] [label = "rate [%=IMA.rates.get(disruption.beId) %]"];
+	[% }%]
+[% } %] 
+}
+[%
+// Example:
+//digraph BCG {
+//size = "7, 10.5";
+//center = TRUE;
+//node [shape = circle];
+//0 [peripheries = 2];
+//0 -> 8 [label = "rate 3.1"];
+//0 -> 5 [label = "rate 0.9"];
+//1 -> 2 [label = "SUCCESS"];
+//8 -> 2 [label = "FAIL"];
+//}
+%]

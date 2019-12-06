@@ -57,6 +57,8 @@ public enum Language {
 	SCHEDULE("Schedule", UMMAALScheduleSimplePackage.eINSTANCE),
 	/* CADP markov automata*/
 	CADP_AUT("CADP_aut"),
+	/* graphviz dot file */
+	DOT("DOT"),
 	/* Intermediate Monolithic Automata*/
 	//IMA("IMA", "/home/pavlov/proj/attop/eclipse-workspace/org.ou.INAUT/model/iMA.ecore");
     IMA("IMA", "data/models/iMA.ecore");
