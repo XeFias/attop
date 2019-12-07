@@ -72,6 +72,9 @@
 			read="false" store="true" />
 
 <!--____________  eunits ________________ -->
+		<epsilon.eunit src="StdTests.eunit">
+		</epsilon.eunit>
+
 		<epsilon.eunit src="IntegrationTests.eunit">
 			<model ref="UATS_test_1" as="UATS"/>
 			<model ref="UATV_test_1" as="UATV" />

@@ -1,0 +1,42 @@
+import "../data/transformations/IntermediateStd.eol";
+
+@test
+operation Test_pop() {
+	var seq1 = Sequence{"A", "B", "C"};
+	var r:Collection = seq1.pop();
+	assertEquals( "A", r.first() );
+	assertEquals( Sequence{"B", "C"}, r.second() );
+}
+
+@test
+operation Test_combinationsOfStrings() {
+	var seq = Sequence{"A", "B", "C"};
+	var exp = Sequence{	Sequence{"A", "B", "C"},
+						Sequence{"A", "C", "B"},
+						Sequence{"B", "A", "C"},
+						Sequence{"B", "C", "A"},
+						Sequence{"C", "A", "B"},
+						Sequence{"C", "B", "A"}	};	
+
+	var result = seq.combinations();
+
+	assertEquals( exp, result );
+}
+
+@test
+operation Test_combinationsOfObjects() {
+ 	var A = new Native('java.util.Formatter');
+ 	var B = new Native('java.util.Formatter');
+ 	var C = new Native('java.util.Formatter');
+	var seq = Sequence{A, B, C};
+	var exp = Sequence{	Sequence{A, B, C},
+						Sequence{A, C, B},
+						Sequence{B, A, C},
+						Sequence{B, C, A},
+						Sequence{C, A, B},
+						Sequence{C, B, A}	};	
+
+	var result = seq.combinations();
+
+	assertEquals( exp, result );
+}

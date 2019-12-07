@@ -11,3 +11,32 @@ operation Collection(IMA!Disruption) toString()	: String {
 	r = r.concat(stateStr + ")");
 	return r;	
 }
+
+operation Sequence(Any) combinations() : Sequence(Any) {
+	if (self.size() == 0) { 
+		return Sequence{Sequence{}};
+	} else {
+		var combs = Sequence{};
+		for ( element in self ) {
+			var set = Sequence{};
+			for ( elem in self ) { set.add(elem); } //copy
+			set.remove( element ); 
+			var combs2 = set.combinations();
+			for ( comb in combs2 ) {
+				combs.add( Sequence{element}.includingAll(comb) );
+			}
+		}
+		return combs;
+	}
+}
+
+operation Sequence(Any) pop() : Collection {
+	if ( self.size() == 0) {
+		return Collection{null, Sequence{}};
+	} else {
+		var copy:Sequence(Any);
+		for ( elem in self ) { copy.add(elem); } //copy
+		var element = copy.removeAt(0);
+		return Collection{element, copy};
+	}
+}

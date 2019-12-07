@@ -220,23 +220,18 @@ operation IMA!State processPacketOfWork(
 	while ( bottomUp.hasNext() ) {
 		var gate = bottomUp.next();
 		var newStatuses = gate.calculateStatusInState( self, prevState, be );
-		if ( newStatuses.size() == 1 ) {
+		if ( newStatuses.size() == 1 ) {// Changing 'be' in the current state did 
+										// not trigger any racecondition.
 			var status = newStatuses.first();
 			self.setNodeStatus(gate, status);
-		} else if ( newStatuses.size() > 1 ) {
-			var i = 0;
+		} else if ( newStatuses.size() > 1 ) {	// Racecondition occured.
 			for ( newStatus in newStatuses ) {
-				if (i == 0) { // Continue work on using the first status produced. 
-					self.setNodeStatus(gate, newStatus); 
-				} else { // The rest of the possible statuses for this node 
-						 // generates new half processed states which must be 
-						 // processed in the future.
-					var newNextState = self.copyState( "R" );
-					var bottomUpCopy = bottomUp.copyIterator();
-					newNextState.setNodeStatus(gate, newStatus);
-					r.add( Sequence{ newNextState, bottomUpCopy, be } );
-				}
-				i++;
+				// Create a packet of work for all possible statuses 
+				// to be processed in the future.
+				var newNextState = self.copyState( "R" );
+				var bottomUpCopy = bottomUp.copyIterator();
+				newNextState.setNodeStatus(gate, newStatus);
+				r.add( Sequence{ newNextState, bottomUpCopy, be } );
 			}
 		} else {
 			throw ("When calculating the status of a Gate " + gate.id + " returned no status.");
@@ -297,7 +292,7 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 	}
 }
 
-// TODO: possible race conditions implemented in DFTCalc and STORM?
+// TODO: How are possible race conditions implemented in DFTCalc and STORM?
 operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
 : Set(Any) /* Set(IMA!StatusType) */ {
 	var statuses = Set{};
@@ -306,32 +301,50 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	//  children resulting in race conditions. This information is only of importance
 	//  to SAND and SOR gates.
 
-	var bes = gate.~beToChildrenFinal.keySet();
+	var bes = gate.~beToChildrenFinal.keySet(); // retrieve 'be' which participate in the racecondition.
 	if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null.
 		// Because 'be' can reach this gate via multiple children activation of
 		// this 'be' could possibly generate multiple outcomes
-		for ( childA in gate.~beToChildrenFinal.get( be ) ) {
-			// 1. Copy children from previous state
-			var tempState = self.copyState("tempState");
-			// 2. Reset children which participate in a race condition to the previous status, except 'childA'.  
-			for ( childB in gate.~beToChildrenFinal.get( be ) ) {
-				if ( childB <> childA ) {
-					var prevStatus = prevState.getNodeStatus( childB );
-					tempState.setNodeStatus( childB, prevStatus );
-				}
-			}
-			// 3. Calculate the new state by check condition of children (forAll( )).
-			// 4. Add result to return Set{}.
-			switch (gate.connector.type().name) {
-				case "SAND"	:{ statuses.add(tempState.calculatedStatusOfSAND( gate )); }
-				case "SOR"	:{ statuses.add(tempState.calculatedStatusOfSOR( gate )); }
-				default : throw (self.children.println("process UNKNOWN Gate!____" 
-								+ self.connector.gate.id));
-			}
+		// Now check what happens when only one child is changed before all others.
+		
+		// Create a temperary state in which the childeren of this gate are reset.
+		// 1. Copy children from previous state
+		var resetState = self.copyState("resetState");
 
-			// remove newly created temperary status.			
-			delete tempState;			
+		// 2. Reset children which participate in a race condition to the 
+		//    previous status.
+		for ( childB in gate.~beToChildrenFinal.get( be ) ) {
+			var prevStatus = resetState.getNodeStatus( childB );
+			resetState.setNodeStatus( childB, prevStatus );
 		}
+
+		// Generate the cartesian product of orders in which the changes of the 'bes' can occure.
+		var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
+		
+		// Calculate all possible statues.
+		for ( childSequence in childSequences ) {
+			var tempState = resetState.copyState("tempState");
+			var newStatus = IMA!StatusType#OPERATIONAL;
+			// Determine the status when childere are set in the sequence.
+			for ( child in childSequence ) {
+				var newChildStatus = self.getNodeStatus( child );
+				tempState.setNodeStatus( child, newChildStatus );
+				
+				switch (gate.connector.type().name) {
+					case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
+					case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
+					default : throw (self.children.println("process UNKNOWN Gate!____" 
+									+ self.connector.gate.id));
+				}
+				if ( newStatus <> IMA!StatusType#OPERATIONAL ) {
+					statuses.add( newStatus );  // When the status changes we
+					break;						// are done for this activation sequence.
+				}
+				statuses.add( newStatus );
+			}
+			delete tempState;
+		}
+		delete resetState;
 	} else {
 		// No race-condition. 
 		switch (gate.connector.type().name) {
@@ -341,6 +354,9 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 							+ self.connector.gate.id));
 		}
 	}
+
+	// At this point 'statuses' contains all statuses which can occure for 
+	// this gate during this transition.
 	return statuses;
 }
 

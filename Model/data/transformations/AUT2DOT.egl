@@ -5,7 +5,6 @@
 	var IMA = IMA!InterimAutomaton.allInstances().first();
 	var disruptions = IMA!Disruption.allInstances();
 	var states = IMA!State.allInstances();
-	IMA.rates.keySet().println("rates key set____");
 
 %]
 digraph BCG {
