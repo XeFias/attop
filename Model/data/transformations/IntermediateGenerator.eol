@@ -141,7 +141,8 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	// The caller will create transitions to the state which are returned. This
 	// must include the excisting state which are reached. 
 	var targetStates = missingStates.includingAll( existingStates );
-		
+
+
 	// Recursively process new states to create the monolithic automata.
 	for ( nextState in missingStates ) {
 		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown, finalStates, rootNode);
@@ -194,6 +195,7 @@ operation IMA!State calculateGateStatusesInState(
 						prevState:IMA!State,
 						be:UATS!Node ) 
 						: Set(IMA!State) {
+					
 	var DonePackets = Set{};
 	var TodoPackets = Set{};
 	var packetOfWork = Sequence { self, bottomUp.copyIterator(), be };
@@ -215,6 +217,7 @@ operation IMA!State processPacketOfWork(
 	prevState:IMA!State, 
 	be		:UATS!Node )
 : Set(Sequence) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
+
 	var r:Set(Sequence(Any)) = Set{};
 
 	while ( bottomUp.hasNext() ) {
@@ -236,7 +239,8 @@ operation IMA!State processPacketOfWork(
 		} else {
 			throw ("When calculating the status of a Gate " + gate.id + " returned no status.");
 		}
-	} // State 'self' is processed in the bottom-up direction 
+	} // State 'self' is processed in the bottom-up direction
+	 
 	return r; // New work packets due to race condition.
 }
 
@@ -330,31 +334,38 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 				var newChildStatus = self.getNodeStatus( child );
 				tempState.setNodeStatus( child, newChildStatus );
 				
-				switch (gate.connector.type().name) {
-					case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
-					case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
-					default : throw (self.children.println("process UNKNOWN Gate!____" 
-									+ self.connector.gate.id));
+				if ( tempState.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
+					switch (gate.connector.type().name) {
+						case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
+						case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
+						default : throw (self.children.println("process UNKNOWN Gate!____" 
+										+ self.connector.gate.id));
+					}
+					if ( newStatus <> IMA!StatusType#OPERATIONAL ) {
+						statuses.add( newStatus );  // When the status changes we
+						break;						// are done for this activation sequence.
+					}
+					statuses.add( newStatus );
+				} else {
+					statuses.add( tempState.getNodeStatus(gate) );
 				}
-				if ( newStatus <> IMA!StatusType#OPERATIONAL ) {
-					statuses.add( newStatus );  // When the status changes we
-					break;						// are done for this activation sequence.
-				}
-				statuses.add( newStatus );
 			}
 			delete tempState;
 		}
 		delete resetState;
 	} else {
-		// No race-condition. 
-		switch (gate.connector.type().name) {
-			case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
-			case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
-			default : throw (self.children.println("process UNKNOWN Gate!____" 
-							+ self.connector.gate.id));
-		}
+		// No race-condition.
+		if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
+			switch (gate.connector.type().name) {
+				case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
+				case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
+				default : throw (self.children.println("process UNKNOWN Gate!____" 
+								+ self.connector.gate.id));
+			}
+		} else {
+			statuses.add( self.getNodeStatus(gate) );
+		}		
 	}
-
 	// At this point 'statuses' contains all statuses which can occure for 
 	// this gate during this transition.
 	return statuses;
