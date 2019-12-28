@@ -2,16 +2,23 @@
 	import "IntermediateGenerator.eol";
 
 	var attackTree		: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	// UATV not loaded in eunit.
+	var rateValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
 	var probabilityValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
 	var rootNode		: UATS!Node 		= UATS!AttackTree.allInstances().first().Root;
-	
-	
+
 	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
 
 	// Add all rates
 	for (probabilityValue in probabilityValues) {
 		var a:UATV!Node = probabilityValue.node;
-		IMA.rates.put( probabilityValue.node.id, probabilityValue.value.value );
+		IMA.probabilities.put( probabilityValue.node.id, probabilityValue.value.value );
+	}
+
+	// Add all rates
+	for (rate in rateValues) {
+		var a:UATV!Node = rate.node;
+		IMA.rates.put( rate.node.id, rate.value.value );
 	}
 
 	// TODO: Use instanceOf to id gatetypes AND OR SAND SOR.

@@ -9,6 +9,8 @@
     <eStructuralFeatures xsi:type="ecore:EReference" name="rootState" eType="#//State"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="successGoal" eType="#//State"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="failureGoal" eType="#//State"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="probabilities" upperBound="-1"
+        eType="#//StringToDoubleMap" containment="true"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="State">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>

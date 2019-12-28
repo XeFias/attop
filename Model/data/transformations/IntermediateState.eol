@@ -149,7 +149,7 @@ operation IMA!State setNodeStatus( node:UATS!Node, value ) { // value is StatusT
 	}
 }
 
-operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State ) 
+operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State)
 		: IMA!Disruption {
 	// Prevent duplicate link.		
 	for ( disruption in self.outgoing ) {
@@ -177,5 +177,4 @@ operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State )
 	d1.newStatus = change;
 	return d1;
 }
-
 /**********************************EOF****************************************/

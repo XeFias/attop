@@ -15,7 +15,15 @@ node [shape = circle];
 	[% if( IMA.rates.get(disruption.beId) == null ) { %]
 [%=disruption.source.id %] -> [%=disruption.target.id %] [label = "[%=disruption.beId %]"];
 	[% } else { %]
-[%=disruption.source.id %] -> [%=disruption.target.id %] [label = "rate [%=IMA.rates.get(disruption.beId) %]"];
+		[%	var rate = IMA.rates.get(disruption.beId);
+			var negation = ""; 
+			var prob = IMA.probabilities.get(disruption.beId).format("%.4s");
+			if ( disruption.newStatus == IMA!StatusType#FAILED ) { 
+				negation = "¬";
+				prob = (1-IMA.probabilities.get(disruption.beId)).format("%.4s"); 
+			} 
+		%]
+[%=disruption.source.id %] -> [%=disruption.target.id %] [label = "[%=negation%][%=disruption.beId %]\n rate [%=rate %]\n prob [%=prob %]"];
 	[% }%]
 [% } %] 
 }
@@ -31,6 +39,4 @@ node [shape = circle];
 //1 -> 2 [label = "SUCCESS"];
 //8 -> 2 [label = "FAIL"];
 //}
-
-
 %]

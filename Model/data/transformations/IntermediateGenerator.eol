@@ -4,7 +4,7 @@ import "IntermediateStateMap.eol";
 
 operation generateIntermediateAutomata( 
 			attackTree:UATS!AttackTree,
-			probabilityValues:Set(UATV!attributes), // TODO:
+			probabilityValues:Set(UATV!attributes), // TODO: no longer required. only needed at IMA2<?>.egl  
 			rootNode:UATS!Node ) 
 		: IMA!InterimAutomaton {
 	
@@ -23,31 +23,40 @@ operation generateIntermediateAutomata(
 	var successGoalState= rootState.createSuccesGoal();
 	var failGoalState	= rootState.createFailGoal();
 	var finalStates		= Map{	IMA!GoalState#SUCCESS	= successGoalState,
-								IMA!GoalState#FAIL	= failGoalState};
+								IMA!GoalState#FAIL		= failGoalState};
 	gStateMap.put(rootState);
 	gStateMap.put(successGoalState);
 	gStateMap.put(failGoalState);
 
 	// Mark the gates in the attack-tree with a Map describing there reachability.
-	markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );	 
+	markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );
 
-	for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-		for ( be in rootState.bes.keySet() ) {
-			var nextStatesBe = recur_buildIMA(	gStateMap, 
-												bottomUpIterator, 
+	for ( be in rootState.bes.keySet() ) {
+		// New state E representing attack / Markovian state
+		// New disruption/transition from rootState to E with label BE + rate
+		// New state F representing probabolistic state
+		// New disruption/transition from E to F with label BE
+		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
+			var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
+												bottomUpIterator,
 												topDownIterator,
-												finalStates,
-												rootNode, 
-												rootState,
-												be.~nodeRef, 
-												nextStatus );
+												finalStates,	// the FAIL and SUCCESS automata state
+												rootNode,		// attack-tree rootGate
+												rootState,		// root of automata
+												be.~nodeRef, 	// reference to actual attack-tree gate
+												nextStatus ); 	// new node statues in next automata state. 
+			// var probDivider = nextStatesBe.size();
+			// if ( probDivider = 0) { delete all newly created state and disruption/transitions }
+			// else {
+			//	var probability = 0; 
+			//	if ( nextStatus == MA!StatusType#SUCCESS ) { probability = BE.prob; } else { probability = (1 - BE.prob); }
 			for ( state in nextStatesBe ) {
-				rootState.setDisruption( be.~nodeRef, nextStatus, state );
+				/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
 				
 				// TODO: Not nice duplicate code. Move to recur_buildIMA ?				
 				var statusType = state.getNodeStatus( rootNode );
-				if ( statusType <> IMA!StatusType#OPERATIONAL ) {
-					switch (statusType) {
+				if ( statusType <> IMA!StatusType#OPERATIONAL ) { 	// Did the next state of the attack-tree reach the rootGoal. 
+					switch (statusType) {							// If so add a transition to the final status.
 						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
 						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
 						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
@@ -56,8 +65,10 @@ operation generateIntermediateAutomata(
 					}
 				}
 			}
-		}
+			// } 
+		} 
 	}
+
 
 	// Uniquely number all states.
 	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
@@ -141,6 +152,10 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	// The caller will create transitions to the state which are returned. This
 	// must include the excisting state which are reached. 
 	var targetStates = missingStates.includingAll( existingStates );
+
+	//TODO: At this point the algotithm could add the egdes (Distuptions) from 
+	// the rootstate(previous) to then new states target stats before continuing
+	// to process these new states.  
 
 
 	// Recursively process new states to create the monolithic automata.
@@ -322,8 +337,10 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 			resetState.setNodeStatus( childB, prevStatus );
 		}
 
+		// TODO: move to upfront calculation to start of generateIntermediateAutomata()
+		var childSequences = gate.~sequences;
 		// Generate the cartesian product of orders in which the changes of the 'bes' can occure.
-		var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
+		// var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
 		
 		// Calculate all possible statues.
 		for ( childSequence in childSequences ) {
@@ -537,13 +554,18 @@ operation markGatesReachableFromBAS(
 			var list = gate.~beToChildren.get( be );
 			if ( list.size() > 1 ){
 				gate.~beToChildrenFinal.put( be, list);
+				// Create set of possible child activation sequences. 
+				// And also add this as an Extended Proplerty.  	 
+				gate.~sequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
 			}
 		}
+		
 		delete gate.~beToChildren;
 	}
-	// Label all children using there id.
+	
+	// Label remove be.~reachableBy which is no longer needed.
 	for ( be in BEs ) {
-		// TODO: This seems to delete be.id which is required?
+		// TODO: This seems to also delete be.id which is required?
 		// delete be.~reachableBy; 
 	}
 }
