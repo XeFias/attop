@@ -180,9 +180,9 @@ operation IMA!State recur2_buildIMA(
 			var nextStatesBe = recur_buildIMA(	gStateMap, 
 												bottomUp,
 												topDown,
-												finalStates,
+												finalStates,// Possible fixed final states. 
 												rootNode,
-												self,
+												self,		// Previous state.
 												be.~nodeRef,
 												nextStatus );
 			for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
@@ -391,6 +391,7 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 operation IMA!State calculatedStatusOfSAND( gate:UATS!Node ) 
 :Any /* Set(IMA!StatusType) */ {
 	if ( self.isActivatedFromLeft( gate.children ) == false ) {
+		gate.id.println("Is set to safe_____ ");
 		return IMA!StatusType#SAFE;
 	}
 

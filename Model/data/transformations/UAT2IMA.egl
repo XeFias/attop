@@ -9,7 +9,7 @@
 
 	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
 
-	// Add all rates
+	// Add all probabilities
 	for (probabilityValue in probabilityValues) {
 		var a:UATV!Node = probabilityValue.node;
 		IMA.probabilities.put( probabilityValue.node.id, probabilityValue.value.value );

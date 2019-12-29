@@ -35,12 +35,6 @@ des (0, [%=AUT.second()%], [%=AUT.first()%])
 //				For every Failed transition
 //					print edge from AT state to related new state with label "prob <(1-prob)/nbr>" 
 
-
-// Retrieve the attribute value related to a node from a set of UATV!attributes.
-operation getValue( attr:Set(UATV!attributes), BESID:String ) : Real {
-	var attribute = attr.selectOne(x|x.node.id == BESID);
-	return attribute.value.value;
-}	
 	
 operation buildMA() : Sequence(Integer, Integer, String) {
 
@@ -50,8 +44,8 @@ operation buildMA() : Sequence(Integer, Integer, String) {
 	var totNrOfStates = 0;
 	var totNrOfTransitions = 0;
 	var probStatesId = states.size() - 1;
-	var probabilityValues:Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
-	var rateValues:Set(UATV!attributes)			= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
+	var probabilityValues:OrderedSet(IMA!StringToDoubleMap)	= IMA.probabilities;
+	var rateValues:OrderedSet(IMA!StringToDoubleMap)		= IMA.rates;
 
 	var maStr:String = "";
 	for (state in states) {
@@ -59,18 +53,19 @@ operation buildMA() : Sequence(Integer, Integer, String) {
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
 				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					maStr = maStr.concat( "("+ state.id + ", \"rate " + getValue(rateValues, beID)+ "\", " + probStatesId++ + ")\n" );
+					maStr = maStr.concat( "("+ state.id + ", \"rate " + rateValues.get(beID)+ "\", " + probStatesId++ + ")\n" );
 					totNrOfTransitions++;
 					/*TODO select target state */
 					maStr = maStr.concat( "(" + probStatesId + ", \"" + beID + "\", 1)\n" );
 					totNrOfTransitions++; 
 					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
+						var probabilityDivider = disruptions.size(); probabilityDivider.println("probabilityDivider = ");
 						for ( disruption in disruptions.select( i | i.newStatus == IMA!StatusType#SUCCESS ) ) {
-							maStr = maStr.concat( "(" + probStatesId + ", \"prob " + getValue(probabilityValues, beID) + "\", " + disruption.target.id + ")\n" );
+							maStr = maStr.concat( "(" + probStatesId + ", \"prob " + probabilityValues.get(beID) / probabilityDivider + "\", " + disruption.target.id + ")\n" );
 							totNrOfTransitions++;
 						}
 						for ( disruption in disruptions.select( i | i.newStatus == IMA!StatusType#FAILED ) ) {
-							maStr = maStr.concat( "(" + probStatesId + ", \"prob " + (1 - getValue(probabilityValues, beID)) + "\", " + disruption.target.id + ")\n" );
+							maStr = maStr.concat( "(" + probStatesId + ", \"prob " + (1 - probabilityValues.get(beID)) / probabilityDivider + "\", " + disruption.target.id + ")\n" );
 							totNrOfTransitions++;
 						}
 					}
