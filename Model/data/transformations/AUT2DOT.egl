@@ -1,5 +1,6 @@
 [%
 	import "IMA2TXT.eol";
+	import "IntermediateState.eol";
 
   	var javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Starting IMA2AUT generation: ");
@@ -7,6 +8,7 @@
 	var IMA = IMA!InterimAutomaton.allInstances().first();
 	var disruptions = IMA!Disruption.allInstances();
 	var states = IMA!State.allInstances();
+	//var AUT = buildMA();
 	var AUT = buildMAText(true);
 %]
 digraph BCG {
@@ -28,5 +30,61 @@ node [shape = circle];
 //1 -> 2 [label = "SUCCESS"];
 //8 -> 2 [label = "FAIL"];
 //}
+
+operation buildMA() : Sequence(Integer, Integer, String) {
+
+	var IMA = IMA!InterimAutomaton.allInstances().first();
+	var disruptions = IMA!Disruption.allInstances();
+	var states = IMA!State.allInstances();
+	var totNrOfStates = 0;
+	var totNrOfTransitions = 0;
+	var probStatesId = states.size() * 2 - 1;
+	var probabilityValues:OrderedSet(IMA!StringToDoubleMap)	= IMA.probabilities;
+	var rateValues:OrderedSet(IMA!StringToDoubleMap)		= IMA.rates;
+
+	var maStr:String = "";
+	for (state in states) {
+		if( state.outgoing.size() > 0 ){
+			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
+			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
+				if( beID <> "SUCCESS" and beID <> "FAIL" ){
+					//maStr = maStr.concat( "("+ state.id + ", \"rate " + rateValues.get(beID)+ "\", " + probStatesId++ + ")\n" );
+					maStr = maStr.concat( (state.id + " -> " + probStatesId++ + " [label = \"" + beID + "\\n rate = " + rateValues.get(beID) + "\", style=dashed]\n") );
+					totNrOfTransitions++;
+					/*TODO select target state */
+					//maStr = maStr.concat( "(" + probStatesId + ", \"" + beID + "\", 1)\n" );
+					maStr = maStr.concat( (probStatesId + " -> " + probStatesId++ + "\n") );
+					maStr = maStr.concat( probStatesId + " [shape=point];\n");
+					totNrOfTransitions++;
+					// Processed successfull distuptions
+					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
+					for ( disruption in succesfullDisruptions ){
+						//maStr = maStr.concat( "(" + probStatesId + ", \"prob " + probabilityValues.get(beID) / probabilityDivider + "\", " + disruption.target.id + ")\n" );
+						maStr = maStr.concat( (probStatesId + " -> " + disruption.target.id + " [label = \"" + beID + "\\n prob = " + probabilityValues.get(beID) / succesfullDisruptions.size() + "\"]\n") );
+						totNrOfTransitions++;
+					}
+					// Processed failed distuptions
+					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+					var probabilityDividerFailedDisruptions = failedDisruptions.size();
+					for ( disruption in failedDisruptions ){
+						//maStr = maStr.concat( "(" + probStatesId + ", \"prob " + (1 - probabilityValues.get(beID)) / probabilityDivider + "\", " + disruption.target.id + ")\n" );
+						maStr = maStr.concat( (probStatesId + " -> " + disruption.target.id + " [label = \"¬" + beID + "\\n prob = " + (1 - probabilityValues.get(beID)) / probabilityDividerFailedDisruptions.size() + "\"]\n") );
+						totNrOfTransitions++;
+					}
+				} else { /* end for !SUCCES and !FAIL */
+					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
+						for ( disruption in disruptions ) {
+							//maStr = maStr.concat( "(" + state.id + ", \"" + beID + "\", " + disruption.target.id + ")\n" );
+							maStr = maStr.concat( (state.id + " -> " + disruption.target.id + " [label = \"" + beID + "\"]\n") );
+							totNrOfTransitions++;
+						}
+					}
+				}
+			}
+		}
+	}
+	return Sequence{ probStatesId + 1, totNrOfTransitions, maStr };
+}
 
 %]

@@ -1,7 +1,10 @@
 [%
+	import "IMA2TXT.eol";
+
   	var javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Starting IMA2AUT generation: ");
-	var AUT = buildMA();
+	//var AUT = buildMA();
+	var AUT = buildMAText(false);
 	var totNrOfStates = 0;
 	var totNrOfTransitions = 0;
 
