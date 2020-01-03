@@ -410,7 +410,8 @@ operation IMA!State calculatedStatusOfSAND( gate:UATS!Node )
 	if ( gate.children.forAll( child |  self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
 		return IMA!StatusType#SUCCESS;
 	} else if ( gate.children.exists( child | 
-					self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
+					self.getNodeStatus(child) == IMA!StatusType#FAILED
+					or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
 		// If any is FAILED return FAILED,
 		return IMA!StatusType#FAILED;
 	}
