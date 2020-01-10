@@ -119,7 +119,6 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 
 	// Calculate the new statuses of the gates in this State
 	var newStates = newState.calculateGateStatusesInState( bottomUp, prevState, be ); 
-	
 	var missingStates:Set(IMA!State) = Set{};
 	var existingStates:Set(IMA!State) = Set{};
 	var doubleStates:Set(IMA!State) = Set{};
@@ -221,60 +220,78 @@ operation IMA!State calculateGateStatusesInState(
 		var work =  TodoPackets.random();
 		TodoPackets.remove( work );
 		// processPacketOfWork() can generate new packets of work due to raceconditions.
-		var newPacketsOfWork = work.first().processPacketOfWork( work.second(), prevState, work.third() );
-		// The last packet detected a race-condition. And as such is replaced by the new packets.
-		if (newPacketsOfWork.size() <= 1) {
-			DonePackets.add(work.first());
+		var resultAndnewPacketsOfWork = work.first().processPacketOfWork( work.second(), prevState, work.third() );
+		var valid = resultAndnewPacketsOfWork.first();
+		var newPacketsOfWork = resultAndnewPacketsOfWork.second();
+		
+		if ( valid ) { 
+			// The last packet detected a race-condition. And as such is replaced by the new packets.
+			if (newPacketsOfWork.size() == 0) {
+				// activation of this 'be' did not result in any new states.
+				DonePackets.add(work.first());
+			} else if (newPacketsOfWork.size() == 1) {
+				DonePackets.add(work.first());
+			} else {
+			}
+		} else {
+			delete self;
 		}
 		TodoPackets.addAll( newPacketsOfWork );
 	}
-	return DonePackets;
+	return DonePackets; // set of new target AT states.
 }
 
 operation IMA!State processPacketOfWork(
 	bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 	prevState:IMA!State, 
 	be		:UATS!Node )
-: Set(Sequence) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
+: Collection(Boolean,Set(Sequence)) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
 	var r:Set(Sequence(Any)) = Set{};
+	var valid = true;
+	while ( bottomUp.hasNext() and valid ) { // Iterate over gates.
+		var gate = bottomUp.next(); // Next gate
+		var ValidAndnewStatuses = gate.calculateStatusInState( self, prevState, be );
 
-	while ( bottomUp.hasNext() ) {
-		var gate = bottomUp.next();
-		var newStatuses = gate.calculateStatusInState( self, prevState, be );
-		if ( newStatuses.size() == 1 ) {// Changing 'be' in the current state did 
-			var status = newStatuses.first();
-			self.setNodeStatus(gate, status);
-		} else if ( newStatuses.size() > 1 ) {	// Racecondition occured.
-			for ( newStatus in newStatuses ) {
-				// Create a packet of work for all possible statuses 
-				// to be processed in the future.
-				var newNextState = self.copyState( "R" );
-				var bottomUpCopy = bottomUp.copyIterator();
-				newNextState.setNodeStatus(gate, newStatus);
-								
-				r.add( Sequence{ newNextState, bottomUpCopy, be } );
+		if( ValidAndnewStatuses.first() == true ){ // valid 'be' activation.
+			var newStatuses = ValidAndnewStatuses.second();
+			if ( newStatuses.size() == 1 ) {// Changing 'be' in the current state did
+				var status = newStatuses.first();
+				self.setNodeStatus(gate, status);
+			} else if ( newStatuses.size() > 1 ) {	// Racecondition occured.
+				for ( newStatus in newStatuses ) {
+					// Create a packet of work for all possible statuses 
+					// to be processed in the future.
+					var newNextState = self.copyState( "R" );
+					var bottomUpCopy = bottomUp.copyIterator();
+					newNextState.setNodeStatus(gate, newStatus);
+									
+					r.add( Sequence{ newNextState, bottomUpCopy, be } );
+				}
+			} else {
+				// When calculating the status of a Gate when 'be' changed returned no status.
 			}
-		} else {
-			// When calculating the status of a Gate when 'be' changed returned no status.
+		} else { // invalid 'be' activation.
+			valid = false;
+			r = Set{};
 		}
 	} // State 'self' is processed in the bottom-up direction
 
-	return r; // New work packets due to race condition.
+	return Collection{valid,r}; // New work packets due to race condition.
 }
 
           // Gate.
 operation UATS!Node calculateStatusInState( state:IMA!State, prevState:IMA!State, be:UATS!Node )
-: Set(Any) /*IMA!StatusType*/ {
-	var r:Set() = Set{};
+: Collection(Boolean,Set(Any)) /*IMA!StatusType*/ {
+	//var invalid = false;
+	//var r:Set() = Set{};
 	switch (self.connector.type().name) {
-		case "AND"	:{ r.add(state.calculateStatusOfAND(self)); }
-		case "OR"	:{ r.add(state.calculateStatusOfOR(self)); }	
-		case "SAND"	:{ r.addAll(state.calculateStatusOfSequentialGate(self, prevState, be )); }
-		case "SOR"	:{ r.addAll(state.calculateStatusOfSequentialGate(self, prevState, be )); }
-		default : throw (self.children.println("process UNKNOWN Gate!____" 
+		case "AND"	:{ return Collection{ true, Set{ state.calculateStatusOfAND(self) } }; }
+		case "OR"	:{ return Collection{ true, Set{ state.calculateStatusOfOR(self) } }; }	
+		case "SAND"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "SOR"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		default : throw (self.children.println("process UNKNOWN Gate type!____" 
 						+ self.connector.gate.id));
 	}
-	return r;
 }
 
 operation IMA!State calculateStatusOfAND( gate:UATS!Node )
@@ -316,8 +333,9 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 
 // TODO: How are possible race conditions implemented in DFTCalc and STORM?
 operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
-: Set(Any) /* Set(IMA!StatusType) */ {
+: Collection(Boolean,Set(Any)) /* Set(IMA!StatusType) */ {
 	var statuses = Set{};
+	var validActivation = true;
 	//	gate.~beToChildrenFinal: describes via which children of the gate BE can
 	//  reach the gate. It only mentions BEs which can reach the gate via multiple
 	//  children resulting in race conditions. This information is only of importance
@@ -356,8 +374,10 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 					tempState.setNodeStatus( child, newChildStatus );
 					if ( tempState.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
 						switch (gate.connector.type().name) {
-							case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
+							case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate );}
 							case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
+							case "DAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
+							case "POR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
 							default : throw (self.children.println("process UNKNOWN Gate!____" 
 											+ self.connector.gate.id));
 						}
@@ -386,6 +406,8 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 				switch (gate.connector.type().name) {
 					case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
 					case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
+					case "PAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
+					case "POR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
 					default : throw (self.children.println("process UNKNOWN Gate!____" 
 									+ self.connector.gate.id));
 				}
@@ -398,7 +420,21 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	}
 	// At this point 'statuses' contains all statuses which can occure for 
 	// this gate during this transition.
-	return statuses;
+	var out = Set{};
+	if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
+		var out = statuses.excluding( IMA!StatusType#OPERATIONAL );
+	
+		if ( out.size() == 1 and statuses.first() == IMA!StatusType#SAFE ) {
+			 validActivation = false;
+		} else if ( statuses.size() > 1 ) {
+			 out = statuses.excluding( IMA!StatusType#SAFE );
+		}
+	}
+				 
+	// Also test if OPERATIONAL is the only other status the also invalid.
+	// TODO recalculate probabilities id only one option!!!
+	
+	return Collection{validActivation, out};
 }
 
 operation IMA!State calculatedStatusOfSAND( gate:UATS!Node ) 

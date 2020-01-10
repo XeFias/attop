@@ -12,6 +12,7 @@ operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
 
 	var maStr:String = "";
 	for (state in states) {
+		//("___For state id = " + state.id + " value = " + state.toString(true)).println();
 		if( state.outgoing.size() > 0 ){
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
