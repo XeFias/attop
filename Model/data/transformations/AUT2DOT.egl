@@ -1,5 +1,6 @@
 [%
 	import "IntermediateState.eol";
+	import "IMA2TXT.eol";
 
   	var javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Starting IMA2AUT generation: ");
@@ -31,7 +32,7 @@ node [shape = rect];
 //8 -> 2 [label = "FAIL"];
 //}
 
-operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
+operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
 
 	var IMA = IMA!InterimAutomaton.allInstances().first();
 	var disruptions = IMA!Disruption.allInstances();

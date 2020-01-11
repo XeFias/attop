@@ -1,8 +1,8 @@
 toplevel "A";
 "A" sand "B" "C";
-"B"  and "E" "D";
-"C"  and "D" "F";
+"B" and "E" "D";
+"C" and "D" "F";
 
-"D" cost=10 lambda=0.6 prob=0.7;
-"E" cost=10 lambda=0.5 prob=0.8;
-"F" cost=10 lambda=0.7 prob=0.9;
+"D" lambda=0.6 prob=1;
+"E" lambda=0.5 prob=1;
+"F" lambda=0.7 prob=1;

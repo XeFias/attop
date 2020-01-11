@@ -112,13 +112,13 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 							be:UATS!Node, 
 							nextStatus ) 
 : Set(IMA!State) {
-
 	var newState = prevState.copyState( "Generated" ); // TODO: maybe use state name as hash?
 	// Set BE in state to newStatus
 	newState.setNodeStatus( be, nextStatus );
 
 	// Calculate the new statuses of the gates in this State
-	var newStates = newState.calculateGateStatusesInState( bottomUp, prevState, be ); 
+	var newStates = newState.calculateGateStatusesInState( bottomUp, prevState, be );
+	
 	var missingStates:Set(IMA!State) = Set{};
 	var existingStates:Set(IMA!State) = Set{};
 	var doubleStates:Set(IMA!State) = Set{};
@@ -210,7 +210,6 @@ operation IMA!State calculateGateStatusesInState(
 						prevState:IMA!State,
 						be:UATS!Node ) 
 						: Set(IMA!State) {
-
 	var DonePackets = Set{};
 	var TodoPackets = Set{};
 	var packetOfWork = Sequence { self, bottomUp.copyIterator(), be };
@@ -248,6 +247,7 @@ operation IMA!State processPacketOfWork(
 : Collection(Boolean,Set(Sequence)) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
 	var r:Set(Sequence(Any)) = Set{};
 	var valid = true;
+
 	while ( bottomUp.hasNext() and valid ) { // Iterate over gates.
 		var gate = bottomUp.next(); // Next gate
 		var ValidAndnewStatuses = gate.calculateStatusInState( self, prevState, be );
@@ -289,6 +289,8 @@ operation UATS!Node calculateStatusInState( state:IMA!State, prevState:IMA!State
 		case "OR"	:{ return Collection{ true, Set{ state.calculateStatusOfOR(self) } }; }	
 		case "SAND"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
 		case "SOR"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "PAND"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "POR"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
 		default : throw (self.children.println("process UNKNOWN Gate type!____" 
 						+ self.connector.gate.id));
 	}
@@ -334,6 +336,7 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 // TODO: How are possible race conditions implemented in DFTCalc and STORM?
 operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
 : Collection(Boolean,Set(Any)) /* Set(IMA!StatusType) */ {
+	var out = Set{};
 	var statuses = Set{};
 	var validActivation = true;
 	//	gate.~beToChildrenFinal: describes via which children of the gate BE can
@@ -341,99 +344,105 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	//  children resulting in race conditions. This information is only of importance
 	//  to SAND and SOR gates.
 	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
-		var bes = gate.~beToChildrenFinal.keySet(); // retrieve 'be' which participate in the racecondition.
-		if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null.
-			// Because 'be' can reach this gate via multiple children activation of
-			// this 'be' could possibly generate multiple outcomes
-			// Now check what happens when only one child is changed before all others.
-			
-			// Create a temperary state in which the childeren of this gate are reset.
-			// 1. Copy children from previous state
-			var resetState = self.copyState("resetState");
-	
-			// 2. Reset children which participate in a race condition to the 
-			//    previous status.
-			for ( childB in gate.~beToChildrenFinal.get( be ) ) {
-				var prevStatus = prevState.getNodeStatus( childB );
-				resetState.setNodeStatus( childB, prevStatus );
-			}
-	
-			// TODO: move to upfront calculation to start of generateIntermediateAutomata()
-			var childSequences = gate.~sequences;
-			// Generate the cartesian product of orders in which the changes of the 'bes' can occure.
-			// var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
-			
-			// Calculate all possible statues.
-			for ( childSequence in childSequences ) {
-			
-				var tempState = resetState.copyState("tempState");
-				var newStatus = IMA!StatusType#OPERATIONAL;
-				// Determine the status when childere are set in the sequence.
-				for ( child in childSequence ) {
-					var newChildStatus = self.getNodeStatus( child );
-					tempState.setNodeStatus( child, newChildStatus );
-					if ( tempState.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
-						switch (gate.connector.type().name) {
-							case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate );}
-							case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
-							case "DAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
-							case "POR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
-							default : throw (self.children.println("process UNKNOWN Gate!____" 
-											+ self.connector.gate.id));
+		// First test if childeren of this gate are activated out of order.
+		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
+			validActivation = self.isActivatedFromLeft( gate, be );
+		}
+		
+		if ( validActivation ) {
+			// If not activated out of order handle potential race condition. 
+			var bes = gate.~beToChildrenFinal.keySet(); // retrieve 'be' which participate in the racecondition.
+			if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null.
+				// Because 'be' can reach this gate via multiple children activation of
+				// this 'be' could possibly generate multiple outcomes
+				// Now check what happens when only one child is changed before all others.
+				
+				// Create a temperary state in which the childeren of this gate are reset.
+				// 1. Copy children from previous state
+				var resetState = self.copyState("resetState");
+		
+				// 2. Reset children which participate in a race condition to the 
+				//    previous status.
+				for ( childB in gate.~beToChildrenFinal.get( be ) ) {
+					var prevStatus = prevState.getNodeStatus( childB );
+					resetState.setNodeStatus( childB, prevStatus );
+				}
+		
+				// TODO: move to upfront calculation to start of generateIntermediateAutomata()
+				var childSequences = gate.~sequences;
+				// Generate the cartesian product of orders in which the changes of the 'bes' can occure.
+				// var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
+				
+				// Calculate all possible statues.
+				for ( childSequence in childSequences ) {
+				
+					var tempState = resetState.copyState("tempState");
+					var newStatus = IMA!StatusType#OPERATIONAL;
+					// Determine the status when childere are set in the sequence.
+					for ( child in childSequence ) {
+						var newChildStatus = self.getNodeStatus( child );
+						tempState.setNodeStatus( child, newChildStatus );
+						if ( tempState.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
+							switch (gate.connector.type().name) {
+								case "SAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate );}
+								case "SOR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
+								case "PAND"	:{ newStatus = tempState.calculatedStatusOfSAND( gate ); }
+								case "POR"	:{ newStatus = tempState.calculatedStatusOfSOR( gate ); }
+								default : throw (self.children.println("process UNKNOWN Gate!____" 
+												+ self.connector.gate.id));
+							}
+							if ( newStatus <> IMA!StatusType#OPERATIONAL ) {
+								statuses.add( newStatus );  // When the status changes we
+								break;						// are done for this activation sequence.
+							}
+						} else {
+							newStatus = tempState.getNodeStatus(gate);
+							statuses.add( tempState.getNodeStatus(gate) );
 						}
-						if ( newStatus <> IMA!StatusType#OPERATIONAL ) {
-							statuses.add( newStatus );  // When the status changes we
-							break;						// are done for this activation sequence.
-						}
-						//statuses.add( newStatus );
-						//newStatus.println("___ added 2 =");
-					} else {
-						newStatus = tempState.getNodeStatus(gate);
-						statuses.add( tempState.getNodeStatus(gate) );
 					}
+					// After completion of a sequence the gate state is still OPERATIONAL.
+					// This should be added as on off the new states.
+					if ( newStatus == IMA!StatusType#OPERATIONAL ) {
+						statuses.add( newStatus );
+					}
+					delete tempState;
 				}
-				// After completion of a sequence the gate state is still OPERATIONAL.
-				// This should be added as on off the new states.
-				if ( newStatus == IMA!StatusType#OPERATIONAL ) {
-					statuses.add( newStatus );
-				}
-				delete tempState;
-			}
-			delete resetState;
-		} else {
-			// No race-condition.
-			if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
-				switch (gate.connector.type().name) {
-					case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
-					case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
-					case "PAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
-					case "POR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
-					default : throw (self.children.println("process UNKNOWN Gate!____" 
-									+ self.connector.gate.id));
-				}
+				delete resetState;
 			} else {
-				statuses.add( self.getNodeStatus(gate) );
+				// No race-condition.
+				if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL) {
+					switch (gate.connector.type().name) {
+						case "SAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
+						case "SOR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
+						case "PAND"	:{ statuses.add( self.calculatedStatusOfSAND( gate ) ); }
+						case "POR"	:{ statuses.add( self.calculatedStatusOfSOR( gate ) ); }
+						default : throw (self.children.println("process UNKNOWN Gate!____" 
+										+ self.connector.gate.id));
+					}
+				} else {
+					statuses.add( self.getNodeStatus(gate) );
+				}
 			}
+		} else {
+			// Skip gate as its allready changes state.
 		}
-	} else {
-		// Skip gate as its allready changes state.
-	}
-	// At this point 'statuses' contains all statuses which can occure for 
-	// this gate during this transition.
-	var out = Set{};
-	if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
-		var out = statuses.excluding( IMA!StatusType#OPERATIONAL );
-	
-		if ( out.size() == 1 and statuses.first() == IMA!StatusType#SAFE ) {
-			 validActivation = false;
-		} else if ( statuses.size() > 1 ) {
-			 out = statuses.excluding( IMA!StatusType#SAFE );
+		// At this point 'statuses' contains all statuses which can occure for 
+		// this gate during this transition.
+		if ( (gate.connector.type().name == "SAND") 
+			or (gate.connector.type().name == "SOR" )) {
+			out = statuses.excluding( IMA!StatusType#OPERATIONAL );
+			
+			if ( (out.size() == 1) and (statuses.first() == IMA!StatusType#SAFE) ) {
+				validActivation = false;
+			} else if ( statuses.size() > 1 ) {
+				out = statuses.excluding( IMA!StatusType#SAFE );
+			}
+		} else {
+			out = statuses;
 		}
 	}
-				 
 	// Also test if OPERATIONAL is the only other status the also invalid.
 	// TODO recalculate probabilities id only one option!!!
-	
 	return Collection{validActivation, out};
 }
 
@@ -451,7 +460,7 @@ operation IMA!State calculatedStatusOfSAND( gate:UATS!Node )
 		// If any is FAILED return FAILED,
 		return IMA!StatusType#FAILED;
 	}
-
+	
 	return IMA!StatusType#OPERATIONAL;
 }
 
@@ -497,6 +506,29 @@ operation IMA!State isActivatedFromLeft( children:OrderedSet(UATS!Node) ) : Bool
 	}
 }
 
+operation IMA!State isActivatedFromLeft( gate:UATS!Node, be:UATS!Node ) : Boolean {
+	// get children reachable by the current 'be'.
+	// Collect all 'bes' which can reach this gate.
+	var next = Set{};
+	var prev = Set{};
+	for ( child in gate.children ) {
+		next = next.includingAll( child.~reachableBy );
+	}
+	
+	for ( child in gate.children ) {
+		prev = prev.includingAll( child.~reachableBy ); 
+		next = next.excludingAll( child.~reachableBy );
+		if (	( self.getNodeStatus( child ) == IMA!StatusType#OPERATIONAL )
+			and ( not prev.includes( be ) )
+			and ( next.includes( be ) ) 
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
 operation IMA!State getOperationalBEs() : Set(UATS!Node) {
 	var r:Set(UATS!Node) = Set{};
 	for ( be in self.bes.keySet() ) {
@@ -526,12 +558,23 @@ operation IMA!State setSafeStatuses (
 								var status = self.calculatedStatusOfSAND( gate );
 							}	
 				case "SOR"	:{	// NOTE: When a race condition has occured 
-								// recalculating the status of a SAND could 
+								// recalculating the status of a SOR could 
 								// potentially generate an excisting state 
 								// which will subsequantly be removed. 
 								var status = self.calculatedStatusOfSOR( gate );
 							}	
-
+				case "PAND"	:{	// NOTE: When a race condition has occured 
+								// recalculating the status of a PAND could 
+								// potentially generate an excisting state 
+								// which will subsequantly be removed. 
+								var status = self.calculatedStatusOfSAND( gate );
+							}	
+				case "POR"	:{	// NOTE: When a race condition has occured 
+								// recalculating the status of a POR could 
+								// potentially generate an excisting state 
+								// which will subsequantly be removed. 
+								var status = self.calculatedStatusOfSOR( gate );
+							}	
 				default : throw (self.children.println("process UNKNOWN Gate!____" + gate.connector.gate.id));
 			}
 			if ( ( status == IMA!StatusType#FAILED ) 
@@ -556,6 +599,11 @@ operation IMA!State propogateDontCareStatuses (
 			}
 		}			
 	}
+}
+
+operation childrenActivatedInOrder( gate:UATS!Node ) {
+	
+	
 }
 
 // TODO: clean up and test with SAND and SOR.
