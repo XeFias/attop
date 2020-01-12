@@ -1,0 +1,8 @@
+toplevel "A";
+
+"A" or "B" "C" ;
+"C" seqand "D" "E" ;
+
+"B" lambda=0.5 dorm=0 prob=1.0;		
+"D" lambda=0.5 dorm=0 prob=1.0;		
+"E" lambda=0.5 dorm=0 prob=1.0;		

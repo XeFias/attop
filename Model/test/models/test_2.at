@@ -1,0 +1,12 @@
+toplevel "X";
+
+"X" or "A" "Y" "F";
+"Y" and "G" "F" "C";
+"A" sor "B" "C" "G" "Y";
+"B" sand "D" "E" ;
+"C" sand "E" "F" ;
+
+"D" lambda=0.5 dorm=0 prob=0.5;
+"E" lambda=0.6 dorm=0 prob=0.6;
+"F" lambda=0.7 dorm=0 prob=0.7;
+"G" lambda=0.7 dorm=0 prob=0.8;

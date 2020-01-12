@@ -1,0 +1,9 @@
+toplevel "A";
+"A" sand "B" "C";
+"B" and "D" "E";
+"C" and "F" "G";
+
+"D" lambda=0.6 prob=1;
+"E" lambda=0.5 prob=1;
+"F" lambda=0.7 prob=1;
+"G" lambda=0.8 prob=1;

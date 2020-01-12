@@ -1,0 +1,10 @@
+toplevel "A";
+"A"  sor "B" "H";
+"B"  sand "C" "D";
+"C"  and "E" "F";
+"D"  and "F" "G";
+
+"E" cost=10 lambda=0.6 prob=0.7;
+"F" cost=10 lambda=0.5 prob=0.8;
+"G" cost=10 lambda=0.7 prob=0.9;
+"H" cost=10 lambda=0.7 prob=0.9;

@@ -1,0 +1,8 @@
+toplevel "A";
+"A" sor "B" "D";
+"B" sor "C" "E";
+"C" sor "F" "G";
+"D" lambda=1 dorm=0 prob=0.5;
+"E" lambda=1 dorm=0 prob=0.5;
+"F" lambda=1 dorm=0 prob=0.5;
+"G" lambda=1 dorm=0 prob=0.5;

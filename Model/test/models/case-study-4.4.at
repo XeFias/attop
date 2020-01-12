@@ -1,0 +1,23 @@
+% root node of the AT is password_crack
+toplevel "password_crack";
+"password_crack"        or    "cracking_alternatives" "password_attack";
+"key_logger"            sand  "installation" "intercept_password";
+"password_attack"       sor   "social_engineering" "key_logger";
+"cracking_alternatives" or    "guessing" "dictionary" "bruteforce";
+"installation"          or    "remote" "physical";
+"email/phone_trap"      or    "email_trap" "phone_trap";
+"physical"              sand  "physical_reconn" "install_keylogger" ;
+"remote"                sand  "generic_reconnaissance" "payload_crafting" "email_file_execution";
+"social_engineering"    sand  "generic_reconnaissance" "email/phone_trap";
+
+"guessing"                  lambda=0    dorm=0 prob=1;
+"email_trap"                lambda=1    dorm=0 prob=0.33;
+"phone_trap"                lambda=0.5  dorm=0 prob=0.33;
+"dictionary"                lambda=0    dorm=0 prob=1;
+"bruteforce"                lambda=0.03 dorm=0 prob=1;
+"intercept_password"        lambda=1    dorm=0 prob=1;
+"email_file_execution"      lambda=0.5  dorm=0 prob=0.1;
+"payload_crafting"          lambda=0.5  dorm=0 prob=1;
+"physical_reconn"           lambda=1    dorm=0 prob=1;
+"install_keylogger"         lambda=1    dorm=0 prob=1;
+"generic_reconnaissance"    lambda=1    dorm=0 prob=1;

@@ -1,0 +1,23 @@
+toplevel "password_crack";
+
+"email/phone_trap" or "email_trap" "phone_trap" ;
+"remote" seqand "generic_reconnaissance" "payload_crafting" "email_file_execution" ;
+"social_engineering" seqand "generic_reconnaissance" "email/phone_trap" ;
+"password_attack" and "social_engineering" "key_logger" ;
+"cracking_alternatives" or "guessing" "dictionary" "bruteforce" ;
+"password_crack" or "cracking_alternatives" "password_attack" ;
+"installation" or "remote" "physical" ;
+"key_logger" seqand "installation" "intercept_password" ;
+"physical" seqand "physical_reconn" "install_keylogger" ;
+
+"email_trap" lambda=1.0 dorm=0 prob=1.0;		
+"email_file_execution" lambda=0.5 dorm=0 prob=1.0;		
+"generic_reconnaissance" lambda=1.0 dorm=0 prob=1.0;		
+"install_keylogger" lambda=1.0 dorm=0 prob=1.0;		
+"payload_crafting" lambda=0.5 dorm=0 prob=1.0;		
+"phone_trap" lambda=0.5 dorm=0 prob=1.0;		
+"physical_reconn" lambda=1.0 dorm=0 prob=1.0;		
+"guessing" lambda=0.0 dorm=0 prob=1.0;		
+"intercept_password" lambda=1.0 dorm=0 prob=1.0;		
+"bruteforce" lambda=0.03 dorm=0 prob=1.0;		
+"dictionary" lambda=0.0 dorm=0 prob=1.0;		

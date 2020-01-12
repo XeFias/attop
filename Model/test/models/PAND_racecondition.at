@@ -1,0 +1,8 @@
+toplevel "A";
+"A" pand "B" "C";
+"B" and "E" "D";
+"C" and "D" "F";
+
+"D" lambda=0.6 prob=1;
+"E" lambda=0.5 prob=1;
+"F" lambda=0.7 prob=1;
