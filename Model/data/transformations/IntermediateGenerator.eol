@@ -212,6 +212,10 @@ operation IMA!State calculateGateStatusesInState(
 						: Set(IMA!State) {
 	var DonePackets = Set{};
 	var TodoPackets = Set{};
+	// A packet of work is collection containing:
+	// 	1. a partly processed AT-state,
+	//	2. a parly processed iterator describing how far the AT-state has been processed.
+	//	3. the BES which caused the calculation of the new AT-state.      
 	var packetOfWork = Sequence { self, bottomUp.copyIterator(), be };
 	TodoPackets.add( packetOfWork );
 	
@@ -231,8 +235,10 @@ operation IMA!State calculateGateStatusesInState(
 			} else if (newPacketsOfWork.size() == 1) {
 				DonePackets.add(work.first());
 			} else {
+				// 
 			}
 		} else {
+			// Processing of the BES activation resulted in a invalid AT-state
 			delete self;
 		}
 		TodoPackets.addAll( newPacketsOfWork );
@@ -244,7 +250,7 @@ operation IMA!State processPacketOfWork(
 	bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 	prevState:IMA!State, 
 	be		:UATS!Node )
-: Collection(Boolean,Set(Sequence)) { /* = Set { Sequence { newState, bottomUp.copyIterator(), be } } */
+: Collection(Boolean,Set(Sequence)) { /* = (Boolean, Set { Sequence { newState, bottomUp.copyIterator(), be } }) */
 	var r:Set(Sequence(Any)) = Set{};
 	var valid = true;
 
@@ -335,7 +341,7 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 
 // TODO: How are possible race conditions implemented in DFTCalc and STORM?
 operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
-: Collection(Boolean,Set(Any)) /* Set(IMA!StatusType) */ {
+: Collection(Boolean,Set(Any)) /* (Boolean, Set(IMA!StatusType)) */ {
 	var out = Set{};
 	var statuses = Set{};
 	var validActivation = true;
@@ -344,7 +350,8 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	//  children resulting in race conditions. This information is only of importance
 	//  to SAND and SOR gates.
 	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
-		// First test if childeren of this gate are activated out of order.
+		// First test if the childeren of this gate including their decendants
+		// are activated in a correct of order.
 		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
 			validActivation = self.isActivatedFromLeft( gate, be );
 		}
@@ -431,18 +438,20 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 		if ( (gate.connector.type().name == "SAND") 
 			or (gate.connector.type().name == "SOR" )) {
 			out = statuses.excluding( IMA!StatusType#OPERATIONAL );
-			
+			// If SAFE of SUCCESS is the only status which can occure the gate 
+			// is reached a invalid status. When more the one status are possible
+			// only pass the ones which are not SAFE OF SUCCESS.
 			if ( (out.size() == 1) and (statuses.first() == IMA!StatusType#SAFE) ) {
 				validActivation = false;
 			} else if ( statuses.size() > 1 ) {
 				out = statuses.excluding( IMA!StatusType#SAFE );
+			} else {
+				
 			}
 		} else {
 			out = statuses;
 		}
 	}
-	// Also test if OPERATIONAL is the only other status the also invalid.
-	// TODO recalculate probabilities id only one option!!!
 	return Collection{validActivation, out};
 }
 
@@ -453,6 +462,7 @@ operation IMA!State calculatedStatusOfSAND( gate:UATS!Node )
 	}
 
 	if ( gate.children.forAll( child |  self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
+		// If all are SUCCESS return SUCCESS,
 		return IMA!StatusType#SUCCESS;
 	} else if ( gate.children.exists( child | 
 					self.getNodeStatus(child) == IMA!StatusType#FAILED
@@ -484,6 +494,8 @@ operation IMA!State calculatedStatusOfSOR( gate:UATS!Node )
 	return IMA!StatusType#OPERATIONAL;
 }
 
+// Test if the childeren of this gate (not including their decendants) are being 
+// activated in a correct of order.
 operation IMA!State isActivatedFromLeft( children:OrderedSet(UATS!Node) ) : Boolean {  
 	var next = 0;
 	while ( (next <= children.size() - 1 ) // Search first child which is not yet activated 
@@ -506,6 +518,8 @@ operation IMA!State isActivatedFromLeft( children:OrderedSet(UATS!Node) ) : Bool
 	}
 }
 
+// Test if the childeren of this gate including their decendants are being 
+// activated in a correct of order.
 operation IMA!State isActivatedFromLeft( gate:UATS!Node, be:UATS!Node ) : Boolean {
 	// get children reachable by the current 'be'.
 	// Collect all 'bes' which can reach this gate.
@@ -514,7 +528,10 @@ operation IMA!State isActivatedFromLeft( gate:UATS!Node, be:UATS!Node ) : Boolea
 	for ( child in gate.children ) {
 		next = next.includingAll( child.~reachableBy );
 	}
-	
+
+	// Check the statuses of the childeren from left to right and verify that
+	// BES, which is activated does not activate before the left part of the 
+	// AT-tree is processed first.  	
 	for ( child in gate.children ) {
 		prev = prev.includingAll( child.~reachableBy ); 
 		next = next.excludingAll( child.~reachableBy );
@@ -546,7 +563,8 @@ operation IMA!State setSafeStatuses (
 	while ( bottomUp.hasNext() ) {
 		var gate = bottomUp.next();
 		if ( self.getNodeStatus(gate) <> IMA!StatusType#OPERATIONAL ) {
-			// Gate already changed.
+			// The status of this Gate has already changed and does not need 
+			// to be calculated again. 
 		} else {
 			switch ( gate.connector.type().name ) {
 				case "AND"	:{	var status = self.calculateStatusOfAND( gate ); }	
@@ -585,6 +603,9 @@ operation IMA!State setSafeStatuses (
 	}
 }
 
+// Propagation of the Dont-care statuses through the attack-tree occures in a 
+// top down matter. When all the parents of BES of a Gate are no longer 
+// Operational its status can no longer influence the state of the AT.
 operation IMA!State propogateDontCareStatuses ( 
 	topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)) )  {
 	while ( topDown.hasNext() ) {
@@ -601,12 +622,7 @@ operation IMA!State propogateDontCareStatuses (
 	}
 }
 
-operation childrenActivatedInOrder( gate:UATS!Node ) {
-	
-	
-}
-
-// TODO: clean up and test with SAND and SOR.
+// Label each Gate with the set of BESs which can reach/influence/modify it.
 operation markGatesReachableFromBAS(
 	bottomUp: Sequence(Sequence(UATS!Node), Sequence(Integer)),	 
 	BEs		: Set(UATS!Node) ) {
@@ -645,7 +661,7 @@ operation markGatesReachableFromBAS(
 			}
 		}
 		// Remove all BEs keys from Map (for this gate) which only have one
-		// Child for a given BE.
+		// Child for a given BE. These can not cause a racecondition
 		gate.~beToChildrenFinal = Map{};
 				
 		for ( be in gate.~beToChildren.keySet() ) {
@@ -657,14 +673,8 @@ operation markGatesReachableFromBAS(
 				gate.~sequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
 			}
 		}
-		
+
 		delete gate.~beToChildren;
-	}
-	
-	// Label remove be.~reachableBy which is no longer needed.
-	for ( be in BEs ) {
-		// TODO: This seems to also delete be.id which is required?
-		// delete be.~reachableBy; 
 	}
 }
 
@@ -672,8 +682,7 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 	var id:Integer = 3;
 	
 	for (disruption:IMA!Disruption in disruptions) {
-		// set id of source state in not set
-	
+		// Set id of source state if not set
 		if ( disruption.source.id == -1 ) {
 			disruption.source.id = id;
 			if ( ( disruption.source.name <> IMA!GoalState#FAIL.toString() ) 
@@ -683,7 +692,7 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 			id++;
 		}
 
-		// set id of target state in not set
+		// Set id of target state if not set
 		if ( disruption.target.id == -1 ) {
 			disruption.target.id = id;
 			if ( ( disruption.target.name <> IMA!GoalState#FAIL.toString() ) 
