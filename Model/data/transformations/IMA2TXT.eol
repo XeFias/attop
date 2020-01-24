@@ -65,7 +65,8 @@ operation toDecisionTansactionString(toDot:Boolean, stateID:Integer, nextProbabi
 	if (toDot) {
 		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " [shape=point];\n" );
 	} else {
-		return ( "(" + stateID + ", \"" + beID + "\", 1)\n" );	/*TODO select target state */
+		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
+		return ( "(" + stateID + ", \"" + label + "\", 1)\n" );	/*TODO select target state */
 	}
 }
 
@@ -83,6 +84,7 @@ operation toFinalTransitionString(toDot:Boolean, stateID:Integer, nextState:Inte
 	if (toDot) {
 		return ( (stateID + " -> " + nextState + " [label = \"" + beID + "\"]\n") );
 	} else {
-		return ( "(" + stateID + ", \"" + beID + "\", " + nextState + ")\n" );
+		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
+		return ( "(" + stateID + ", \"" + label + "\", " + nextState + ")\n" );
 	}
 }
