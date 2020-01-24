@@ -29,15 +29,17 @@ operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
 					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
 					for ( disruption in succesfullDisruptions ){
-						maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#SUCCESS, probabilityValues.get(beID) / probabilityDividerSuccesfullDisruptions) );
-						totNrOfTransitions++;
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#SUCCESS, probabilityValues.get(beID) / probabilityDividerSuccesfullDisruptions) );
+							totNrOfTransitions++;
 					}
 					// Processed failed distuptions
 					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
 					var probabilityDividerFailedDisruptions = failedDisruptions.size();
 					for ( disruption in failedDisruptions ){
-						maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#FAILED, ((1 - probabilityValues.get(beID)) / probabilityDividerFailedDisruptions) ) );
-						totNrOfTransitions++;
+						if ( probabilityValues.get(beID) <> 1 ) {
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#FAILED, ((1 - probabilityValues.get(beID)) / probabilityDividerFailedDisruptions) ) );
+							totNrOfTransitions++;
+						}
 					}
 				} else { /* end for !SUCCES and !FAIL */
 					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
