@@ -55,6 +55,16 @@ operation IMA!State createFailGoal()
 	return state;
 }
 
+operation IMA!State createFinal() 
+		: IMA!State {
+	var state : IMA!State;
+	state = self.copyState( "Final" );
+	state.id = 3;
+	state.setAllStatuses( IMA!StatusType#DONTCARE );
+	return state;
+}
+
+
 operation IMA!State setAllStatuses( status ) {
 	for (be in self.bes.keySet()) {
 		self.bes.put(be, status);
@@ -154,6 +164,7 @@ operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State)
 	// Prevent duplicate link.		
 	for ( disruption in self.outgoing ) {
 		if (	( disruption.newStatus == change )
+			and	( disruption.beId == be.id ) 
 			and	( disruption.source == self ) 
 			and ( disruption.target == target )) {
 				return disruption; // return existing distuption.
@@ -161,17 +172,23 @@ operation IMA!State setDisruption( be:UATS!Node, change, target:IMA!State)
 	}
 
 	var d1 : IMA!Disruption = new IMA!Disruption;
-	if (be = null) {
-		switch (change) {
-			case IMA!StatusType#SUCCESS : d1.beId =  IMA!GoalState#SUCCESS.toString();
-			case IMA!StatusType#FAILED : d1.beId =  IMA!GoalState#FAIL.toString();
-			default : throw( "Unexpected case of " + change );
-		}
-		//d1.beId = change.toString();
-	} else {
-		d1.beId = be.id;
-	}
+	d1.beId = be.id;
 	d1.~be = be;
+	d1.source = self;
+	d1.target = target;
+	d1.newStatus = change;
+	return d1;
+}
+
+operation IMA!State setDisruption( change, target:IMA!State )
+		: IMA!Disruption {
+	var d1 : IMA!Disruption = new IMA!Disruption;
+	switch (change) {
+		case IMA!StatusType#SUCCESS : d1.beId =  IMA!GoalState#SUCCESS.toString();
+		case IMA!StatusType#FAILED : d1.beId =  IMA!GoalState#FAIL.toString();
+		default : throw( "Unexpected case of " + change );
+	}
+	d1.~be = null;
 	d1.source = self;
 	d1.target = target;
 	d1.newStatus = change;

@@ -1,0 +1,27 @@
+toplevel "compromise_SCADA";
+"compromise_SCADA"				sand	"compromise_corporate_network" "attack_industrial_system";
+"compromise_corporate_network"	sand	"injection_via_compromised_USB" "self_installation";
+"attack_industrial_system"		sand	"SCADA_system_compromised" "cascade_centrifuges";
+"self_installation"				sand	"main_module_execution" "propagation";
+"SCADA_system_compromised"		sand	"infection_control_PC" "run_modified_code_on_PLC";
+"main_module_execution"			or		"P2P_comm." "CandC_server_comm.";
+"propagation"					or		"LAN" "rem_media" "user_opens_WinCC_file";
+"run_modified_code_on_PLC"		or		"Sys_300" "Sys_400";
+"LAN"							or		"network_share" "print_server_vuln." "RPC_vuln.";
+"Sys_300"						sand	"collect_data" "PLC_sends_false_data_to_motors";
+"Sys_400"						sand	"inter_in/out_signals" "modify_out_signals";
+
+"injection_via_compromised_USB"		lambda=0.5		dorm=0 prob=0.75;
+"cascade_centrifuges"				lambda=0.1		dorm=0 prob=1;
+"infection_control_PC"				lambda=0.066	dorm=0 prob=1;
+"P2P_comm."							lambda=1		dorm=0 prob=1;
+"CandC_server_comm."					lambda=1		dorm=0 prob=1;
+"rem_media"							lambda=0.5		dorm=0 prob=1;
+"user_opens_WinCC_file"				lambda=1		dorm=0 prob=0.098;
+"network_share"						lambda=12		dorm=0 prob=1;
+"print_server_vuln."				lambda=8		dorm=0 prob=1;
+"RPC_vuln."							lambda=24		dorm=0 prob=1;
+"collect_data"						lambda=0.033	dorm=0 prob=1;
+"PLC_sends_false_data_to_motors"	lambda=30		dorm=0 prob=1;
+"inter_in/out_signals"				lambda=0.033	dorm=0 prob=1;
+"modify_out_signals"				lambda=1		dorm=0 prob=1;

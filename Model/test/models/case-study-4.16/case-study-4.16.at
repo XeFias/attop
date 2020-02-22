@@ -1,0 +1,14 @@
+toplevel "forestalling_release";
+"forestalling_release"			sand    "steal_code" "use_code_in_product";
+"steal_code"					or		"bribing" "network_attack" "physical_robbery";
+"bribing"						sand	"bribe_programmer" "obtain_code";
+"network_attack"				sand	"hire_hacker" "find_bug" "exploit_bug";
+"physical_robbery"				sand	"hire_hacker" "break_into_system";
+
+"use_code_in_product"	lambda=0.5    dorm=0 prob=1;
+"bribe_programmer"		lambda=0.5    dorm=0 prob=1;
+"obtain_code"			lambda=0.5    dorm=0 prob=1;
+"hire_hacker"			lambda=0.5    dorm=0 prob=0.5;
+"find_bug"				lambda=0.5    dorm=0 prob=0.5;
+"exploit_bug"			lambda=0.5    dorm=0 prob=1;
+"break_into_system"		lambda=0.5    dorm=0 prob=1;

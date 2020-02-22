@@ -22,8 +22,13 @@ operation generateIntermediateAutomata(
 	var rootState 		= constructInitialState("rootState", nodes, rootNode);
 	var successGoalState= rootState.createSuccesGoal();
 	var failGoalState	= rootState.createFailGoal();
+	var finalState		= rootState.createFinal();
 	var finalStates		= Map{	IMA!GoalState#SUCCESS	= successGoalState,
 								IMA!GoalState#FAIL		= failGoalState};
+	
+	successGoalState.setDisruption( IMA!StatusType#SUCCESS, finalState );
+	failGoalState.setDisruption( IMA!StatusType#FAILED, finalState );
+								
 	gStateMap.put(rootState);
 	gStateMap.put(successGoalState);
 	gStateMap.put(failGoalState);
@@ -45,27 +50,9 @@ operation generateIntermediateAutomata(
 												rootState,		// root of automata
 												be.~nodeRef, 	// reference to actual attack-tree gate
 												nextStatus ); 	// new node statues in next automata state. 
-			// var probDivider = nextStatesBe.size();
-			// if ( probDivider = 0) { delete all newly created state and disruption/transitions }
-			// else {
-			//	var probability = 0; 
-			//	if ( nextStatus == MA!StatusType#SUCCESS ) { probability = BE.prob; } else { probability = (1 - BE.prob); }
 			for ( state in nextStatesBe ) {
 				/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
-				
-				// TODO: Not nice duplicate code. Move to recur_buildIMA ?				
-				var statusType = state.getNodeStatus( rootNode );
-				if ( statusType <> IMA!StatusType#OPERATIONAL ) { 	// Did the next state of the attack-tree reach the rootGoal. 
-					switch (statusType) {							// If so add a transition to the final status.
-						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
-						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
-						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
-						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
-						default : throw (rootState.children.println("unknown StatusType " + statusType));
-					}
-				}
 			}
-			// } 
 		} 
 	}
 
@@ -187,19 +174,6 @@ operation IMA!State recur2_buildIMA(
 												nextStatus );
 			for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
 				self.setDisruption( be.~nodeRef, nextStatus, state );
-
-				// TODO: Not nice duplicate code. Move to recur_buildIMA ?				
-				var statusType = state.getNodeStatus( rootNode );
-				if ( statusType <> IMA!StatusType#OPERATIONAL ) {
-					// ? Does this link already exist.
-					switch ( statusType ) {
-						case IMA!StatusType#SUCCESS	:{ state.setDisruption( null, IMA!StatusType#SUCCESS, finalStates.get(IMA!GoalState#SUCCESS) ); }
-						case IMA!StatusType#FAILED	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
-						case IMA!StatusType#SAFE	:{ state.setDisruption( null, IMA!StatusType#FAILED, finalStates.get(IMA!GoalState#FAIL) ); }
-						case IMA!StatusType#DONTCARE:{ throw ( "rootNode unexpectedly is DONTCARE" ); }
-						default : throw (self.children.println("unknown StatusType " + statusType));
-					}
-				}
 			}
 		}
 	}
@@ -304,39 +278,45 @@ operation UATS!Node calculateStatusInState( state:IMA!State, prevState:IMA!State
 
 operation IMA!State calculateStatusOfAND( gate:UATS!Node )
 : Any /*IMA!StatusType*/ {
-	if ( gate.children.forAll( child |  self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
-		// If all childeren are SUCCESS return SUCCESS,
-		return IMA!StatusType#SUCCESS;
-	} else if ( gate.children.exists( child | 
-					self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
-		// If any has failed is FAILED return FAILED,
-		return IMA!StatusType#FAILED;
-	} else if ( gate.children.exists( child | 
-					self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-		// If any is SAFE return SAFE,
-		return IMA!StatusType#SAFE;
-	} else {
-		// Keep gate Operational.
-		return IMA!StatusType#OPERATIONAL;
+	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
+		if ( gate.children.forAll( child |  self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
+			// If all childeren are SUCCESS return SUCCESS,
+			return IMA!StatusType#SUCCESS;
+		} else if ( gate.children.exists( child | 
+						self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
+			// If any has failed is FAILED return FAILED,
+			return IMA!StatusType#FAILED;
+		} else if ( gate.children.exists( child | 
+						self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
+			// If any is SAFE return SAFE,
+			return IMA!StatusType#SAFE;
+		} else {
+			// Keep gate Operational.
+			return IMA!StatusType#OPERATIONAL;
+		}
 	}
+	return self.getNodeStatus(gate);
 	// If DONTCARE ?? error because unexpected.
 }
 
 operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 : Any /*IMA!StatusType*/ {
-	if ( gate.children.exists(
-			child | self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
-		// If any child is SUCCESS return SUCCESS,
-		return IMA!StatusType#SUCCESS;
-	} else if ( gate.children.forAll(
-			child | self.getNodeStatus(child) == IMA!StatusType#FAILED
-					or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-		// If all are FAILED of SAFE return FAILED,
-		return IMA!StatusType#FAILED;
-	} else {
-		// Keep gate Operational.
-		return IMA!StatusType#OPERATIONAL;
+	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
+		if ( gate.children.exists(
+				child | self.getNodeStatus(child) == IMA!StatusType#SUCCESS ) ) {
+			// If any child is SUCCESS return SUCCESS,
+			return IMA!StatusType#SUCCESS;
+		} else if ( gate.children.forAll(
+				child | self.getNodeStatus(child) == IMA!StatusType#FAILED
+						or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
+			// If all are FAILED of SAFE return FAILED,
+			return IMA!StatusType#FAILED;
+		} else {
+			// Keep gate Operational.
+			return IMA!StatusType#OPERATIONAL;
+		}
 	}
+	return self.getNodeStatus(gate);
 }
 
 // TODO: How are possible race conditions implemented in DFTCalc and STORM?
@@ -610,7 +590,7 @@ operation IMA!State propogateDontCareStatuses (
 	topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)) )  {
 	while ( topDown.hasNext() ) {
 		var gate = topDown.next();
-		if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) { 
+//		if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) { 
 			var parents = gate.parents;
 			if (parents.size() > 0) {
 				if ( parents.forAll( parent |  self.getNodeStatus(parent) <> IMA!StatusType#OPERATIONAL ) ) {
@@ -618,7 +598,7 @@ operation IMA!State propogateDontCareStatuses (
 					self.setNodeStatus(gate, IMA!StatusType#DONTCARE);
 				}
 			}
-		}			
+//		}			
 	}
 }
 
@@ -679,7 +659,7 @@ operation markGatesReachableFromBAS(
 }
 
 operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
-	var id:Integer = 3;
+	var id:Integer = 4; // Solve magic number. Relate it to number of resurved IMA:GoalStates
 	
 	for (disruption:IMA!Disruption in disruptions) {
 		// Set id of source state if not set

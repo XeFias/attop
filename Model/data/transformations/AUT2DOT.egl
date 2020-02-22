@@ -75,8 +75,10 @@ operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
 				} else { /* end for !SUCCES and !FAIL */
 					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
 						for ( disruption in disruptions ) {
-							maStr = maStr.concat( toFinalTransitionString( printDot, state.toString(false), disruption.target.toString(false), beID ) );
-							totNrOfTransitions++;
+							if ( probabilityValues.get(beID) <> 1 ) {
+								maStr = maStr.concat( toFinalTransitionString( printDot, state.toString(false), disruption.target.toString(false), beID ) );
+								totNrOfTransitions++;
+							}
 						}
 					}
 				}
