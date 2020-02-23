@@ -56,6 +56,10 @@
     <eLiterals name="SUCCESS_ID" value="1"/>
     <eLiterals name="FAIL_ID" value="2"/>
   </eClassifiers>
+  <eClassifiers xsi:type="ecore:EEnum" name="ValueKeys">
+    <eLiterals name="PROBABILITY" literal=""/>
+    <eLiterals name="RATE" value="1"/>
+  </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="StringToDoubleMap" instanceClassName="java.util.Map$Entry">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"
         defaultValueLiteral="0.0"/>

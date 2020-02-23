@@ -1,23 +1,38 @@
 [%
 	import "IntermediateGenerator.eol";
 
-	var attackTree		: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
-	// UATV not loaded in eunit.
-	var rateValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
-	var probabilityValues: Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
-	var rootNode		: UATS!Node 		= UATS!AttackTree.allInstances().first().Root;
+	var rateValues: 		Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
+	var probabilityValues:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
+
+	var attackTree:			UATS!AttackTree			= UATS!AttackTree.allInstances().first();
+	var rootNode: 			UATS!Node 				= UATS!AttackTree.allInstances().first().Root;
+
+//	var values: 			Map(Integer,Map(String,Real)) 		= Map{	IMA!ValueKeys#PROBABILITIE = Map{},
+//																		IMA!ValueKeys#RATE = Map{} };
+
+	// Add values to BEs in attack-tree.
+	for (node in attackTree.Nodes) {
+		node.~values = null;
+		if ( node.children.isEmpty() ){ // is BE.
+			var prob = probabilityValues.selectOne(a|a.node.id == node.id ).value.value;
+			var rate = rateValues.selectOne(a|a.node.id == node.id ).value.value;
+			var val:Map(Integer,Real) = Map{	IMA!ValueKeys#PROBABILITY	= prob,
+												IMA!ValueKeys#RATE 			= rate };
+			node.~values = val;
+		}
+	}
 
 	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
 
 	// Add all probabilities
 	for (probabilityValue in probabilityValues) {
-		var a:UATV!Node = probabilityValue.node;
+		//var a:UATV!Node = probabilityValue.node;
 		IMA.probabilities.put( probabilityValue.node.id, probabilityValue.value.value );
 	}
 
 	// Add all rates
 	for (rate in rateValues) {
-		var a:UATV!Node = rate.node;
+		//var a:UATV!Node = rate.node;
 		IMA.rates.put( rate.node.id, rate.value.value );
 	}
 

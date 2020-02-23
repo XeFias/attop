@@ -42,16 +42,21 @@ operation generateIntermediateAutomata(
 		// New state F representing probabolistic state
 		// New disruption/transition from E to F with label BE
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-			var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
-												bottomUpIterator,
-												topDownIterator,
-												finalStates,	// the FAIL and SUCCESS automata state
-												rootNode,		// attack-tree rootGate
-												rootState,		// root of automata
-												be.~nodeRef, 	// reference to actual attack-tree gate
-												nextStatus ); 	// new node statues in next automata state. 
-			for ( state in nextStatesBe ) {
-				/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
+			// Do not follow transitions for which be corresponding probability equals 0%.
+			// Note: this is only relevant for MA
+			if ((be.~nodeRef.~values.get(IMA!ValueKeys#PROBABILITY) > 0 and nextStatus == IMA!StatusType#SUCCESS) or 
+				(be.~nodeRef.~values.get(IMA!ValueKeys#PROBABILITY) < 1 and nextStatus == IMA!StatusType#FAILED)) {
+				var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
+													bottomUpIterator,
+													topDownIterator,
+													finalStates,	// the FAIL and SUCCESS automata state
+													rootNode,		// attack-tree rootGate
+													rootState,		// root of automata
+													be.~nodeRef, 	// reference to actual attack-tree gate
+													nextStatus ); 	// new node statues in next automata state.
+				for ( state in nextStatesBe ) {
+					/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
+				}
 			}
 		} 
 	}
@@ -164,16 +169,19 @@ operation IMA!State recur2_buildIMA(
 	for ( be in self.getOperationalBEs() ) {
 		// Process state when BE SUCCEEDS or FAILS.
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-			var nextStatesBe = recur_buildIMA(	gStateMap, 
-												bottomUp,
-												topDown,
-												finalStates,
-												rootNode,
-												self,
-												be.~nodeRef,
-												nextStatus );
-			for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
-				self.setDisruption( be.~nodeRef, nextStatus, state );
+			if ((be.~nodeRef.~values.get(IMA!ValueKeys#PROBABILITY) > 0 and nextStatus == IMA!StatusType#SUCCESS) or 
+				(be.~nodeRef.~values.get(IMA!ValueKeys#PROBABILITY) < 1 and nextStatus == IMA!StatusType#FAILED)) {
+				var nextStatesBe = recur_buildIMA(	gStateMap, 
+													bottomUp,
+													topDown,
+													finalStates,
+													rootNode,
+													self,
+													be.~nodeRef,
+													nextStatus );
+				for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
+					self.setDisruption( be.~nodeRef, nextStatus, state );
+				}
 			}
 		}
 	}
