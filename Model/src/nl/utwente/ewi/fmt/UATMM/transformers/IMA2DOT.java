@@ -23,21 +23,21 @@ import org.eclipse.epsilon.eol.models.IModel; //<---
  * Transform from AT metamodel to CADP AUT xml representation
  * @author Patrick van Berkel
  */
-public class AUT2DOT extends EpsilonTransformer {
+public class IMA2DOT extends EpsilonTransformer {
 	/** The singleton instance of this transformer. */
-	private static AUT2DOT INSTANCE;
+	private static IMA2DOT INSTANCE;
 	
 	/** Returns the singleton instance of this transformer. */
-	public static AUT2DOT instance() {
+	public static IMA2DOT instance() {
 		if (INSTANCE == null) {
-			INSTANCE = new AUT2DOT();
+			INSTANCE = new IMA2DOT();
 		}
 		return INSTANCE;
 	}
 	
 	/** Constructor for the singleton instance of this transformer. */
-	private AUT2DOT() {
-		super(Arrays.asList(new Language[]{Language.IMA}), Arrays.asList(new Language[]{Language.DOT}));
+	private IMA2DOT() {
+		super(Arrays.asList(new Language[]{Language.UATV, Language.IMA}), Arrays.asList(new Language[]{Language.DOT}));
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public class AUT2DOT extends EpsilonTransformer {
 		// EGL transformation does not have output model, only generated output
 		HashSet<IModel> out = new HashSet<IModel>();
 		for (Map.Entry<String, Language> e : inputs.entrySet()) {
-			if (e.getValue() == Language.IMA )
+			if (e.getValue() == Language.IMA || e.getValue() == Language.UATV)
 				out.add(createEmfModel(e.getValue(), Role.SOURCE, e.getKey()));
 		}
 		return out;
@@ -60,7 +60,7 @@ public class AUT2DOT extends EpsilonTransformer {
 	@Override
 	public Map<Language, String> getTransformations() {
 		Map<Language, String> ret = new HashMap<Language, String>();
-		ret.put(Language.DOT, "transformations/AUT2DOT.egl");
+		ret.put(Language.DOT, "transformations/IMA2DOT.egl");
 		return ret;
 	}
 

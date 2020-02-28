@@ -37,7 +37,7 @@ public class IMA2AUT extends EpsilonTransformer {
 	
 	/** Constructor for the singleton instance of this transformer. */
 	private IMA2AUT() {
-		super(Arrays.asList(new Language[]{Language.UATS, Language.UATV, Language.IMA}), Arrays.asList(new Language[]{Language.CADP_AUT}));
+		super(Arrays.asList(new Language[]{Language.UATV, Language.IMA}), Arrays.asList(new Language[]{Language.CADP_AUT}));
 	}
 
 	@Override
@@ -51,7 +51,7 @@ public class IMA2AUT extends EpsilonTransformer {
 		// EGL transformation does not have output model, only generated output
 		HashSet<IModel> out = new HashSet<IModel>();
 		for (Map.Entry<String, Language> e : inputs.entrySet()) {
-			if (e.getValue() == Language.IMA || e.getValue() == Language.UATS || e.getValue() == Language.UATV)
+			if (e.getValue() == Language.IMA || e.getValue() == Language.UATV)
 				out.add(createEmfModel(e.getValue(), Role.SOURCE, e.getKey()));
 		}
 		return out;

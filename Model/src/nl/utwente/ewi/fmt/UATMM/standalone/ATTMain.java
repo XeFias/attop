@@ -14,7 +14,7 @@ public class ATTMain {
 	private static final ITransformer[] transformers = new ITransformer[] {
 		UAT2IMA.instance(),
 		IMA2AUT.instance(),
-		AUT2DOT.instance(),
+		IMA2DOT.instance(),
 		UAT2Uppaal.instance(),
 		Uppaal2XML.instance(),
 		ADTool2UAT.sINSTANCE,

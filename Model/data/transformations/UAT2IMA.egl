@@ -1,14 +1,12 @@
 [%
 	import "IntermediateGenerator.eol";
 
+	// BAS properties required to generate Markov Automata.
 	var rateValues: 		Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
 	var probabilityValues:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
 
 	var attackTree:			UATS!AttackTree			= UATS!AttackTree.allInstances().first();
 	var rootNode: 			UATS!Node 				= UATS!AttackTree.allInstances().first().Root;
-
-//	var values: 			Map(Integer,Map(String,Real)) 		= Map{	IMA!ValueKeys#PROBABILITIE = Map{},
-//																		IMA!ValueKeys#RATE = Map{} };
 
 	// Add values to BEs in attack-tree.
 	for (node in attackTree.Nodes) {
@@ -23,49 +21,6 @@
 	}
 
 	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
-
-	// Add all probabilities
-	for (probabilityValue in probabilityValues) {
-		//var a:UATV!Node = probabilityValue.node;
-		IMA.probabilities.put( probabilityValue.node.id, probabilityValue.value.value );
-	}
-
-	// Add all rates
-	for (rate in rateValues) {
-		//var a:UATV!Node = rate.node;
-		IMA.rates.put( rate.node.id, rate.value.value );
-	}
-
-	// TODO: Use instanceOf to id gatetypes AND OR SAND SOR.
-	
-	//or(node in UATS!Node.allInstances()){
-	//	out.print('"'+node.id+'"');
-	//	if(node.connector <> null){
-	//		if(node.connector.instanceOf(UATS!AND)){
-	//			out.print(" and");
-	//		} else if(node.connector.instanceOf(UATS!OR)){
-	//			out.print(" or");
-	//		} else if(node.connector.instanceOf(UATS!KofN)){
-	//			out.print(" " + node.connector.Threshold + "of" + node.children.size());
-	//		} else if(node.connector.instanceOf(UATS!PAND)){
-	//			out.print(" pand");
-	//		} else if(node.connector.instanceOf(UATS!SAND)){
-	//			out.print(" sand");
-	//		} else if(node.connector.instanceOf(UATS!SOR)){
-	//			out.print(" sor");
-	//		} else if(node.connector.instanceOf(UATS!Spare)){
-	//			out.print(" wsp");
-	//		}
-	//	}
-	//	for(child in node.children){
-	//		out.print(" \"" + child.id + '"');
-	//	}
-	//	var params : Map = nodeParamMap.get(node.id);
-	//	for(key in params.keySet()){
-	//		out.print(" " + key + "=" + params.get(key).value);
-	//	}
-	//	out.println(";");
-	//
 
 @cached
 operation UATS!Node getRates() : Sequence {
