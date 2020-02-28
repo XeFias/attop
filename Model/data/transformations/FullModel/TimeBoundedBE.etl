@@ -13,7 +13,7 @@ rule TimeBoundedBE
 					)
 			    ).size() = 0
 		/*PERK*/
-		System.out.println("TimeBoundedBE UATS!Node -> List");
+		System.out.println("TimeBoundedBE UATS!Node -> List : node = " + node.label);
 		
 		var sigExpr = createVariable("complete").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
 		var activateVar = createVariable("activate").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
@@ -52,22 +52,26 @@ rule TimeBoundedBE
 		var activeLocation = tmpl.createLocation("Active");
 		activeLocation.setInvariant(timeVar.simpleComparison(maxTimeValue, Uppaal!CompareOperator#LESS_OR_EQUAL)); //when maxAttr.size() == 0, we have minTimeValue == maxTimeValue, which means that we have to use the "=" in both conditions
 		var aCost = node.getActivationCost();
+		System.out.println("TimeBoundedBE.ETL > UATS!Node to List");
+
 		if (aCost <> -1) {
+			System.out.println("TimeBoundedBE.ETL > UATS!Node to List, aCost <> -1");
 			var iLocation = tmpl.createLocation("Activating").makeCommitted();
 			var abortLocation = tmpl.createLocation("Aborting").makeUrgent();
 			var activationEdge = tmpl.createEdge(initLocation, iLocation).setSync(activateVar, false).resetClock(timeVar);
 			var otherEdge = tmpl.createEdge(iLocation, activeLocation);
+			
 			/*PERK*/
-			/*var incrementer = createAssignmentExpr(
+			var incrementer = createAssignmentExpr(
 					createVariable("cost").createReferringExpression(),
 				    createLiteralExpression(aCost.asInteger().asString())
 			);
-			incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;*/ //The "+=" operator is not supported by Jacco's trace parser, so I rewrote the expression explicitly
+			incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL; //The "+=" operator is not supported by Jacco's trace parser, so I rewrote the expression explicitly
 			
-			var costVar = createVariable("cost");
+			/*var costVar = createVariable("cost");
 			var incrementer = createAssignmentExpr(
 				costVar.createReferringExpression(),
-				createSum(costVar.createReferringExpression(), createLiteralExpression(aCost.asInteger().asString())));
+				createSum(costVar.createReferringExpression(), createLiteralExpression(aCost.asInteger().asString())));*/
 			otherEdge.addUpdate(incrementer);
 
 			tmpl.addDontCareTransitions(iLocation, parentCountVar, parents, stopLocation);
@@ -78,6 +82,7 @@ rule TimeBoundedBE
 			var abortSignal = abortVar.createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
 			stopEdge.setSync(abortSignal, true);
 		} else {
+			System.out.println("TimeBoundedBE.ETL > UATS!Node to List, else");
 			var activationEdge = tmpl.createEdge(initLocation, activeLocation).setSync(activateVar, false).resetClock(timeVar);
 		}
 
