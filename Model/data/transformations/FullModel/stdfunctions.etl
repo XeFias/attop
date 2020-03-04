@@ -61,6 +61,12 @@ operation Uppaal!Location makeUrgent() : Uppaal!Location
 	return self;
 }
 
+operation Uppaal!Location setColor(color : Any) : Uppaal!Location
+{
+	self.color = color;
+	return self;
+}
+
 /* Add an invariant to a provided location with the given expression.
  * This operation modified the provided location in-place, and also returns it.
  */

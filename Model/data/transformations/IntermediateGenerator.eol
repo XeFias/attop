@@ -43,7 +43,7 @@ operation generateIntermediateAutomata(
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 			// Do not follow transitions for which be corresponding probability equals 0%.
 			// Note: this is only relevant for MA
-			if ( skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
+			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
 				var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
 													bottomUpIterator,
 													topDownIterator,
@@ -167,7 +167,7 @@ operation IMA!State recur2_buildIMA(
 	for ( be in self.getOperationalBEs() ) {
 		// Process state when BE SUCCEEDS or FAILS.
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-			if ( skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
+			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
 				var nextStatesBe = recur_buildIMA(	gStateMap, 
 													bottomUp,
 													topDown,
@@ -691,12 +691,11 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 // This operation tests for properties which make it possible to skip this transitsion.
 operation skipExploringThisPath( be: UATS!Node, nextStatus ) : Boolean {
 	var skip = false;
-	
 	// Skip when the probability of the transition is 0%.
 	if( be.~values <> null ){ // Do not skip if property .~values is not set
-		if ( be.~values.get(IMA!ValueKeys#PROBABILITY) <> null ) { // Do not skip is not probability is set
-			if ((be.~values.get(IMA!ValueKeys#PROBABILITY) > 0 and nextStatus == IMA!StatusType#SUCCESS) or 
-				(be.~values.get(IMA!ValueKeys#PROBABILITY) < 1 and nextStatus == IMA!StatusType#FAILED)) {
+		if ( be.~values.get(IMA!ValueKeys#PROBABILITY) <> null ) { // Do not skip if probability is not set
+			if ((be.~values.get(IMA!ValueKeys#PROBABILITY) == 0 and nextStatus == IMA!StatusType#SUCCESS) or 
+				(be.~values.get(IMA!ValueKeys#PROBABILITY) == 1 and nextStatus == IMA!StatusType#FAILED)) {
 				skip = true;
 			}
 		}
