@@ -4,6 +4,8 @@
   <eClassifiers xsi:type="ecore:EClass" name="InterimAutomaton">
     <eStructuralFeatures xsi:type="ecore:EReference" name="states" upperBound="-1"
         eType="#//State" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="disruptions" upperBound="-1"
+        eType="#//Disruption" containment="true"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="rootState" eType="#//State"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="successGoal" eType="#//State"/>
     <eStructuralFeatures xsi:type="ecore:EReference" name="failureGoal" eType="#//State"/>
@@ -53,8 +55,11 @@
     <eLiterals name="FAIL_ID" value="2"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EEnum" name="ValueKeys">
-    <eLiterals name="PROBABILITY" literal=""/>
-    <eLiterals name="RATE" value="1"/>
+    <eLiterals name="PROBABILITY" literal="prob"/>
+    <eLiterals name="RATE" value="1" literal="lambda"/>
+    <eLiterals name="COST" value="2" literal="cost"/>
+    <eLiterals name="TMIN" value="3" literal="mintime"/>
+    <eLiterals name="TMAX" value="4" literal="maxtime"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="StringToDoubleMap" instanceClassName="java.util.Map$Entry">
     <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EDouble"

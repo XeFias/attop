@@ -1,0 +1,114 @@
+import "stdfunctions.etl";
+
+pre {
+	System.out.println("IMA2Uppaal.etl:pre");
+}
+
+rule Base
+	transform ima : IMA!InterimAutomaton
+	to out : Uppaal!NSTA {
+	
+	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA >>");
+	out.int = new Uppaal!PredefinedType();
+	out.int.name = "int";
+	out.int.type = Uppaal!BuiltInType#INT;
+	out.chan  = new Uppaal!PredefinedType();
+	out.chan.name = "chan";
+	out.chan.type = Uppaal!BuiltInType#CHAN;
+	out.bool  = new Uppaal!PredefinedType();
+	out.bool.name = "bool";
+	out.bool.type = Uppaal!BuiltInType#BOOL;
+	out.void  = new Uppaal!PredefinedType();
+	out.void.name = "void";
+	out.void.type = Uppaal!BuiltInType#VOID;
+	out.clock  = new Uppaal!PredefinedType();
+	out.clock.name = "clock";
+	out.clock.type = Uppaal!BuiltInType#CLOCK;
+	out.double  = new Uppaal!DoubleType();
+
+
+	/*
+	for (node : UATS!Node in ima.Nodes) {
+		var converted = node.equivalent();
+		if (converted <> null) {
+			out.template.add(converted.get(0));
+			out.systemDeclarations.declaration.add(converted.get(1));
+			iList.template.add(converted.get(1).declaredTemplate);
+		}
+	}
+	*/
+
+	for (state : IMA!State in ima.states) {
+		var converted = state.equivalent();
+		if (converted <> null) {
+			converted.type().println("equivalent type = ");
+			converted.size().println("size = ");
+		}
+	}
+
+
+
+
+
+	out.systemDeclarations = new Uppaal!SystemDeclarations();
+	out.systemDeclarations.system = new Uppaal!System();
+	var iList = new Uppaal!InstantiationList();
+	out.systemDeclarations.system.instantiationList.add(iList);
+	
+
+	out.addTopLevel(ima.rootState);
+	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA << Done");
+}
+	
+//Wasn't chaching this kind of operations important for performances? I didn't measure much, but it seems to have no effect..
+@cached
+operation getAllAttributes() : Sequence {
+	return UATV!Attribute.allInstances();
+}
+
+operation Uppaal!NTA addTopLevel(rootState : IMA!State) {
+	System.out.println("addTopLevel() >>");
+
+	var tmpl : Uppaal!Template = new Uppaal!Template();
+	tmpl.name = "Monolith";
+	tmpl.declarations = new Uppaal!LocalDeclarations();
+	// Initial state
+	var initLocation = tmpl.createLocation("Init").makeCommitted();
+	tmpl.init = initLocation;
+	var goalLocation = tmpl.createLocation("Goal");
+	var failLocation = tmpl.createLocation("Failed");
+
+
+
+	// The clock
+	var timeVar = tmpl.declareClock("x");
+
+	var failsVar : Uppaal!Variable = createVariable("x_completed");
+	failsVar.setInitialValue(0);
+	var decl1 = createDataDeclaration(failsVar);
+	decl1.typeDefinition.referredType = Uppaal!PredefinedType.allInstances().select(t | t.name = "int").first();
+	tmpl.declarations.declaration.add(decl1);
+
+	// Add all transistions ?
+
+	var decl = new Uppaal!TemplateDeclaration();
+	decl.declaredTemplate = new Uppaal!RedefinedTemplate();
+	decl.declaredTemplate.referredTemplate = tmpl;
+	decl.declaredTemplate.name = "Process";
+	
+	self.template.add(tmpl);
+	self.systemDeclarations.declaration.add(decl);
+	self.systemDeclarations.system.instantiationList.at(0).template.add(decl.declaredTemplate);
+
+	System.out.println("addTopLevel() <<");
+}
+
+rule Disruption
+	transform d : IMA!State
+	to ret : List {
+	System.out.println("ETL>Disruption IMA!Disruption -> List >>");
+	
+	
+	System.out.println("ETL>Disruption IMA!Disruption -> List <<");
+}
+

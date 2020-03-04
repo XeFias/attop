@@ -1,5 +1,6 @@
 package nl.utwente.ewi.fmt.UATMM.standalone;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -7,6 +8,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import nl.utwente.ewi.fmt.UATMM.transformers.*;
 
@@ -15,6 +17,7 @@ public class ATTMain {
 		UAT2IMA.instance(),
 		IMA2AUT.instance(),
 		IMA2DOT.instance(),
+		IMA2Uppaal.instance(),
 		UAT2Uppaal.instance(),
 		Uppaal2XML.instance(),
 		ADTool2UAT.sINSTANCE,
@@ -53,6 +56,13 @@ public class ATTMain {
 		HashMap<Language, String> outputs = new HashMap<Language, String>();
 		
 		for (int i = 0; i < args.length; i += 3) {
+			System.out.println("FOR ...");
+			if (args[i].equals("-m")) {
+				i -= 2;
+				System.out.println("use monolith");;
+				ComposedTransformer.useMonolith = true;
+				continue;
+			}
 			if (args[i].equals("--keep-temporary-files")) {
 				ComposedTransformer.keepTemps = true;
 				i -= 2;
@@ -62,6 +72,7 @@ public class ATTMain {
 				usage();
 
 			Language l = Language.getLanguage(args[i + 1]);
+
 			if (l == null) {
 				System.err.format("'%s' is not a recognised language\n", args[i + 1]);
 				usage();
@@ -204,9 +215,10 @@ public class ATTMain {
 			length[0] = 0;
 			return new NullTransformer(target);
 		}
+		ITransformer[] transformersAlt = filterTransformers(ComposedTransformer.useMonolith, transformers);
 		
 		/* First try to find a direct transformation. */
-		for (ITransformer t : transformers) {
+		for (ITransformer t : transformersAlt) {
 			if (t.getTargetLanguages().containsAll(target) && source.containsAll(t.getSourceLanguages())) {
 				length[0] = 1;
 				return t;
@@ -217,7 +229,7 @@ public class ATTMain {
 		ITransformer best = null;
 		int bestLength = Integer.MAX_VALUE;
 
-		for (ITransformer t : transformers) {
+		for (ITransformer t : transformersAlt) {
 			boolean canUse = false;
 			if (futureTargets.containsAll(t.getTargetLanguages()))
 				continue; /* No point to using this transformer */
@@ -273,17 +285,33 @@ public class ATTMain {
 			for (int i = languages.length - 1; i >= 0; i--)
 				ret.add(languages[i]);
 		}
+		ITransformer[] transformersAlt = filterTransformers(ComposedTransformer.useMonolith, transformers);
+
 		if (includeInputs) {
-			for (ITransformer t : transformers) {
+			for (ITransformer t : transformersAlt) {
 				ret.addAll(t.getSourceLanguages());
 				ret.addAll(t.getOptionalSourceLanguages());
 			}
 		}
 		if (includeOutputs) {
-			for (ITransformer t : transformers) {
+			for (ITransformer t : transformersAlt) {
 				ret.addAll(t.getTargetLanguages());
 			}
 		}
 		return ret;
+	}
+	
+	private static ITransformer[] filterTransformers( Boolean useMonolith,  ITransformer[] transformers ) { 
+		List<ITransformer> transformersTemp = new ArrayList<ITransformer>();
+
+		ITransformer t1 = UAT2Uppaal.instance();
+		for (ITransformer t2 : transformers) {
+			if ( !useMonolith || !t1.equals(t2) ) {
+				transformersTemp.add(t2);
+			}
+		}
+		ITransformer[] transformersAlt = transformersTemp.toArray(new ITransformer[transformersTemp.size()]);
+
+		return transformersAlt;
 	}
 }

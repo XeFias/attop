@@ -11,6 +11,7 @@ import nl.utwente.ewi.fmt.UATMM.standalone.Language;
 
 public class ComposedTransformer implements ITransformer {
 	public static boolean keepTemps = false;
+	public static boolean useMonolith = false;
 	private final ITransformer first;
 	private final ITransformer second;
 

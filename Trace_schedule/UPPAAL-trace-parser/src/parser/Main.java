@@ -60,13 +60,13 @@ public class Main {
 //		File trace = new File("/home/jacco/bachref/examples/exampleSDF_UPPAAL_Trace.txt");//AttackTrees/UPPAAL/EnterRoom-cora-default-old.human");
 //		File trace = new File("/home/jacco/bachref/examples/ADTool_IPTV/6_UPPAAL_result_trace.txt");//AttackTrees/UPPAAL/EnterRoom-cora-default-old.human");
 //		File trace = new File("./testfiles/traces/exampleSDF_UPPAAL_Trace.txt");
-		//String trace = "./testfiles/traces/ATtrace/ATtrace.txt"; //Textual trace (only states and transitions, excluding first part of verifyta's output. Thus, just the "err" stream)
-		String trace = "./testfiles/traces/ATtrace/UppaalTextResult.xml"; //Textual trace (only states and transitions, excluding first part of verifyta's output. Thus, just the "err" stream)
-		trace = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.txt";
-		model = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.xml";
+		String trace = "./testfiles/traces/ATtrace/ATtrace.txt"; //Textual trace (only states and transitions, excluding first part of verifyta's output. Thus, just the "err" stream)
+//		String trace = "./testfiles/traces/ATtrace/UppaalTextResult.xml"; //Textual trace (only states and transitions, excluding first part of verifyta's output. Thus, just the "err" stream)
+		//trace = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.txt";
+		//model = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.xml";
 		
 		String outputFile = "./testfiles/output/intermediate.model"; //The output file: an instance of the myTrace.core metamodel, i.e. a trace model.
-		outputFile = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.dtrace";
+//		outputFile = "/local/schivos/Lavoro/SamSam/Models/myTestUppaalSMCmodel.dtrace";
 		
 		// parse
 		new Main(trace, model, outputFile);

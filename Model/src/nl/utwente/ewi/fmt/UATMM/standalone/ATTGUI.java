@@ -11,6 +11,7 @@ import java.awt.Panel;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -24,6 +25,7 @@ import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -41,7 +43,7 @@ public class ATTGUI extends JFrame {
 	
 	private class FilePanel extends Panel implements ActionListener
 	{
-		public JComboBox<String> langBox = new JComboBox<String>();;
+		public JComboBox<String> langBox = new JComboBox<String>();
 		public JTextField filename = new JTextField();
 		private final boolean isInput;
 		
@@ -132,6 +134,7 @@ public class ATTGUI extends JFrame {
 	private JRadioButton reachQuery, probQuery, optQuery, expectedQuery;
 	private JRadioButton optCost, optTime, optSteps;
 	private JTextField costField, timeField;
+	private JCheckBox useMonolith;
 	
 	private JPanel makeQueryTypePanel(final JPanel optPanel)
 	{
@@ -183,6 +186,15 @@ public class ATTGUI extends JFrame {
 		timeField = new JTextField();
 		timeField.setText("Max. time");
 		ret.add(timeField);
+		return ret;
+	}
+
+	private JPanel makeVersionSelectPanel()
+	{
+		JPanel ret = new JPanel(new GridLayout(1, 1));
+		useMonolith = new JCheckBox();
+		useMonolith.setText("Use monolith");
+		ret.add(useMonolith);
 		return ret;
 	}
 	
@@ -304,7 +316,12 @@ public class ATTGUI extends JFrame {
 		getContentPane().setLayout(new BoxLayout(getContentPane(), BoxLayout.Y_AXIS));
 		inputFiles = new ManyFilePanel("Input files", true);
 		add(inputFiles);
-		
+
+		final JPanel monolithPanel = makeVersionSelectPanel();
+		monolithPanel.setBorder(BorderFactory.createTitledBorder("Alternatives"));
+		monolithPanel.setVisible(true);
+		add(monolithPanel);
+
 		final JPanel optPanel = makeOptimizationPanel();
 		optPanel.setBorder(BorderFactory.createTitledBorder("Optimization criterion"));
 		optPanel.setVisible(false);
@@ -350,6 +367,11 @@ public class ATTGUI extends JFrame {
 				boolean runPostProc = false;
 				ArrayList<String> arguments = new ArrayList<String>();
 				arguments.add("--keep-temporary-files");
+				System.out.println("isSelected = " + useMonolith.isSelected());
+				if ( useMonolith.isSelected() ) {
+					System.out.println("Using Monolith version!");
+					arguments.add("-m");
+				}
 				for (String[] data : inputFiles.getFileData()) {
 					arguments.add("-i");
 					arguments.add(data[0]);

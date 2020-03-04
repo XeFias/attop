@@ -38,6 +38,11 @@
 
 operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
 
+	if ( UATV!Domain.allInstances().select(d|d.name == "lambda").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "prob").size() == 0 ) {
+		throw "The BEs in the itermidiate automata does not have the required domains 'lambda' (rate) or 'prob' (probability) ";	 
+	} 
+
 	var IMA = IMA!InterimAutomaton.allInstances().first();
 	var states = IMA!State.allInstances();
 	var totNrOfStates = 0;

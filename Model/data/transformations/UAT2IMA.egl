@@ -1,26 +1,22 @@
 [%
 	import "IntermediateGenerator.eol";
 
-	// BAS properties required to generate Markov Automata.
-	var rateValues: 		Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
-	var probabilityValues:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
+	var domains : Set(String) = Set{IMA!ValueKeys#RATE,
+									IMA!ValueKeys#PROBABILITY,
+									IMA!ValueKeys#COST,
+									IMA!ValueKeys#TMIN,
+									IMA!ValueKeys#TMAX };
+									
+	var attackTree:	UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode:	UATS!Node		= UATS!AttackTree.allInstances().first().Root;
+	attackTree.addValuesToAllNodes(domains);
 
-	var attackTree:			UATS!AttackTree			= UATS!AttackTree.allInstances().first();
-	var rootNode: 			UATS!Node 				= UATS!AttackTree.allInstances().first().Root;
+	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, rootNode);
 
-	// Add values to BEs in attack-tree.
-	for (node in attackTree.Nodes) {
-		node.~values = null;
-		if ( node.children.isEmpty() ){ // is BE.
-			var prob = probabilityValues.selectOne(a|a.node.id == node.id ).value.value;
-			var rate = rateValues.selectOne(a|a.node.id == node.id ).value.value;
-			var val:Map(Integer,Real) = Map{	IMA!ValueKeys#PROBABILITY	= prob,
-												IMA!ValueKeys#RATE 			= rate };
-			node.~values = val;
-		}
+	IMA.disruptions = IMA!Disruption.allInstances();
+	for ( d in IMA.disruptions ){
+		d.beId.println("disruptions.id = ");	
 	}
-
-	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, probabilityValues, rootNode);
 
 @cached
 operation UATS!Node getRates() : Sequence {
@@ -44,6 +40,51 @@ operation UATS!Node getExpRate() {
 	if (expAttrs.isEmpty())
 		return -1;
 	return expAttrs.first().value.value.asReal();
+}
+
+operation getDomain( domain:String ) : Set(UATV!attributes) {
+	var values:		Set(UATV!attributes)	= Set{};
+	var domains: 	Sequence(UATV!Domain)	= UATV!Domain.allInstances().select(d|d.name == domain);
+	if ( domains.size() > 0 )	{ values = domains.first().attributes; }
+	return values; 
+}
+
+operation getValue( node, values ) {
+	var prob;
+	if ( values.size() > 0 ) {
+		var probVal = values.selectOne(a|a.node.id == node.id );
+		if (probVal <> null) {
+			prob = probVal.value.value;
+		}
+	}
+	return prob;
+}
+
+operation getValuesPerDomain( domains : Set(String) ) : Map(String, Set(UATV!attributes)) {
+	var values : Map(String, Set(UATV!attributes)) = Map{};
+	for ( domain in domains ) {
+		var domainStr = domain.toString();
+		var attributes : Set(UATV!attributes) = getDomain( domainStr );
+		values.put( domainStr, attributes);
+	}
+	return values;
+}
+
+// Add all available BE values to the node using epsilons extended expressions node.~values.
+operation UATS!AttackTree addValuesToAllNodes( domains : Set(String) ) {
+	var values : Map(String, Set(UATV!attributes)) = getValuesPerDomain( domains );
+	for ( node in self.Nodes ) {
+		node.~values = null;
+		if ( node.children.isEmpty() ){ // This is a BE.
+			var val:Map(Integer,Real) = Map{};
+			for ( domain in domains ) {
+				var value = getValue(node, values.get( domain.toString() ) );
+				val.put( domain, value );
+			}
+			node.~values = val;
+
+		}
+	}
 }
 
 %]
