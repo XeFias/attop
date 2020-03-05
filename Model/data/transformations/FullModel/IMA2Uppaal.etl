@@ -26,26 +26,12 @@ rule Base
 	out.clock.type = Uppaal!BuiltInType#CLOCK;
 	out.double  = new Uppaal!DoubleType();
 
-
-	/*
-	for (node : UATS!Node in ima.Nodes) {
-		var converted = node.equivalent();
-		if (converted <> null) {
-			out.template.add(converted.get(0));
-			out.systemDeclarations.declaration.add(converted.get(1));
-			iList.template.add(converted.get(1).declaredTemplate);
-		}
-	}
-	*/
-
 	out.systemDeclarations = new Uppaal!SystemDeclarations();
 	out.systemDeclarations.system = new Uppaal!System();
 	var iList = new Uppaal!InstantiationList();
 	out.systemDeclarations.system.instantiationList.add(iList);
-	
 
 	out.addTopLevel( ima );
-	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA << Done");
 }
 	
 //Wasn't chaching this kind of operations important for performances? I didn't measure much, but it seems to have no effect..
@@ -55,8 +41,6 @@ operation getAllAttributes() : Sequence {
 }
 
 operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template {
-	System.out.println("addTopLevel() >>");
-
 	if ( UATV!Domain.allInstances().select(d|d.name == "cost").size() == 0 or
 		 UATV!Domain.allInstances().select(d|d.name == "mintime").size() == 0 or
 		 UATV!Domain.allInstances().select(d|d.name == "maxtime").size() == 0) {
@@ -68,22 +52,10 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 	var tmpl : Uppaal!Template = new Uppaal!Template();
 	tmpl.name = "Monolith";
 	tmpl.declarations = new Uppaal!LocalDeclarations();
-	// Initial state
-	//var initLocation = tmpl.createLocation("Init").makeCommitted();
-	//tmpl.init = initLocation;
-	//var goalLocation = tmpl.createLocation("Goal");
-	//var failLocation = tmpl.createLocation("Failed");
-
-
 
 	// The clock
 	var timeVar:Uppaal!Variable = tmpl.declareClock("x");
-
-	var failsVar : Uppaal!Variable = createVariable("x_completed");
-	failsVar.setInitialValue(0);
-	var decl1 = createDataDeclaration(failsVar);
-	decl1.typeDefinition.referredType = Uppaal!PredefinedType.allInstances().select(t | t.name = "int").first();
-	tmpl.declarations.declaration.add(decl1);
+	var timeVarTotal:Uppaal!Variable = tmpl.declareClock("x_top");
 
 	for (state : IMA!State in ima.states) {
 		var skip = false;
@@ -116,27 +88,21 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 			loc.setColor( color );
 			if ( isInit ) { tmpl.init = loc; }
 			loc.makeCommitted();
-			("state = " + state.name + " loc " + loc ).println();
 			stateMap.put( state, loc );
 		}
 	}
 
-	var costs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "cost").first().attributes;
-	var minTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().attributes;
-	var maxTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().attributes;
+//	var costs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "cost").first().attributes;
+//	var minTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().attributes;
+//	var maxTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().attributes;
 
-	var costType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "cost").first().valueType;
-	var minTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().valueType;
-	var maxTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().valueType;
+//	var costType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "cost").first().valueType;
+//	var minTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().valueType;
+//	var maxTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().valueType;
 
-	costType.println("costType = ");
-	costs.get(0).value.println("costs = ");
-	costs.get(0).value.type.println("costs type = ");
-	
 	var choiceState : Integer = 0; 
 
 	// Add all transistions ?
-	"State >> ".println();
 	for (state : IMA!State in ima.states) {
 		// Lookup state location 
 		if( state.outgoing.size() > 0 ){
@@ -144,16 +110,21 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
 				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					var cost = costs.selectOne(a|a.node.id == beID ).value.value.asInteger();
-					var minT = minTs.selectOne(a|a.node.id == beID ).value.value.asInteger();
-					var maxT = maxTs.selectOne(a|a.node.id == beID ).value.value.asInteger();
+					// For node BE lookup (name and value) for purpose == CostPerpose CostType == ON_ACTIVATION 
+					var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
+					// For node BE lookup (name and value) for purpose == CostPerpose CostType == WHILE_ACTIVE 
+					var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
+					// For node BE lookup (name and value) for purpose == TimePerpose TimeType == MINIMUM 
+					var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
+					// For node BE lookup (name and value) for purpose == TimePerpose TimeType == MAXIMUM 
+					var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
 					// Make choice state
 					var choice = tmpl.createLocation("c_" + choiceState );
 					choiceState++;
 					// Add invariant
 					choice.setInvariant(createConjunction(
 						timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
-						createVariable("cost'").simpleComparison(maxT, Uppaal!CompareOperator#EQUAL)
+						createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL)
 					));
 					// create edge from source to choice
 					var srcLocation = stateMap.get(state);
@@ -161,12 +132,11 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 					// create guard from source to choice
 					var incrementer = createAssignmentExpr(
 							createVariable("cost").createReferringExpression(),
-						    createLiteralExpression( cost )
+						    createLiteralExpression( activationCost )
 					);
 					incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;					
 					toChoice.addUpdate(incrementer);
 					// Processed successfull distuptions
-					"Success >>".println();
 					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 					for ( disruption in succesfullDisruptions ){
 						// create transition
@@ -175,7 +145,6 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 						// create guard
 						toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
 					}
-					"Failed >>".println();
 					// Processed failed distuptions
 					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
 					var probabilityDividerFailedDisruptions = failedDisruptions.size();
@@ -215,15 +184,17 @@ operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton ) : Uppaal!Template
 	var decl = new Uppaal!TemplateDeclaration();
 	decl.declaredTemplate = new Uppaal!RedefinedTemplate();
 	decl.declaredTemplate.referredTemplate = tmpl;
-	decl.declaredTemplate.name = "Process";
+	decl.declaredTemplate.name = "toplevel";
 	
 	self.template.add(tmpl);
 	self.systemDeclarations.declaration.add(decl);
 	self.systemDeclarations.system.instantiationList.at(0).template.add(decl.declaredTemplate);
 
-	System.out.println("addTopLevel() <<");
 	return tmpl;
 }
+
+
+
 
 /*
 rule Disruption

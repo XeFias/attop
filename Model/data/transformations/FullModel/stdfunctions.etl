@@ -567,6 +567,30 @@ operation UATS!Node getActivationCost()
 		return attrs.first().value.value.asReal();
 }
 
+/*IMA based lookup */
+@cached
+operation getCost(id, type)
+{
+		var attributes = UATV!Attribute.allInstances().select(n | n.node.id == id);
+		var attrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!CostPurpose));
+		attrs = attrs.select(a | a.eContainer.purpose.costType = type);
+		if (attrs.isEmpty())
+			return -1;
+		return attrs.first().value.value.asReal();
+}
+
+/*IMA based lookup */
+@cached
+operation getTime(id, type)
+{
+		var attributes = UATV!Attribute.allInstances().select(n | n.node.id == id);
+		var attrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!TimePurpose));
+		attrs = attrs.select(a | a.eContainer.purpose.timeType = type);
+		if (attrs.isEmpty())
+			return -1;
+		return attrs.first().value.value.asReal();
+}
+
 operation Uppaal!Template addDontCareTransitions(from : Uppaal!Location, parentCountVar : Uppaal!Variable,
                                                  parents : Collection, aborted : Uppaal!Location)
 {

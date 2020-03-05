@@ -127,6 +127,10 @@ public class GalileoParser {
 					CostPurpose p = vFactory.createCostPurpose();
 					p.setCostType(CostType.ON_ACTIVATION);
 					dom.setPurpose(p);;
+				} else if (e.getKey().equalsIgnoreCase("costrate")) {
+					CostPurpose p = vFactory.createCostPurpose();
+					p.setCostType(CostType.WHILE_ACTIVE);
+					dom.setPurpose(p);;
 				}
 				dom.setName(e.getKey());
 				dom.setValueType(realType);
@@ -157,6 +161,8 @@ public class GalileoParser {
 			if (lc.startsWith("dorm="))
 				continue;
 			if (lc.startsWith("cost="))
+				continue;
+			if (lc.startsWith("costrate="))
 				continue;
 			if (lc.startsWith("prob="))
 				continue;
