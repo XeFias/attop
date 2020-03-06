@@ -1,0 +1,196 @@
+import "stdfunctions.etl";
+
+//Wasn't chaching this kind of operations important for performances? I didn't measure much, but it seems to have no effect..
+@cached
+operation getAllAttributes() : Sequence {
+	return UATV!Attribute.allInstances();
+}
+
+operation Uppaal!NTA addTopLevel( ima : IMA!InterimAutomaton, useCORA : Boolean ) : Uppaal!Template {
+	if ( UATV!Domain.allInstances().select(d|d.name == "cost").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "mintime").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "maxtime").size() == 0) {
+		throw "The BEs in the itermidiate automata doe not have the required domains 'cost', 'mintime' or 'mintime'";	 
+	} 
+
+	var stateMap : Map(IMA!State,Uppaal!Location) = Map{};
+
+	var tmpl : Uppaal!Template = new Uppaal!Template();
+	tmpl.name = "Monolith";
+	tmpl.declarations = new Uppaal!LocalDeclarations();
+
+	// The clock
+	var timeVar:Uppaal!Variable = tmpl.declareClock("x");
+	var timeVarTotal:Uppaal!Variable = tmpl.declareClock("x_top");
+
+	for (state : IMA!State in ima.states) {
+		var skip = false;
+		var	color = Uppaal!ColorKind#DEFAULT;
+		var loc;
+		var label = "";
+		var isInit = false;
+		switch( state.name ) {
+			case "rootState" : {
+				label = "Init";
+				isInit = true;
+			}
+			case "SUCCESS" : {
+				label = "Completed";
+				color = Uppaal!ColorKind#GREEN;
+			}
+			case "FAIL" : {
+				label = "FAIL";
+				color = Uppaal!ColorKind#RED;
+			}
+			case "Final" : {
+				skip = true;
+			}
+			default : {
+				label = "at_" + state.id.toString();
+			}
+		}
+		if ( not skip ) {
+			loc = tmpl.createLocation( label );
+			loc.setColor( color );
+			if ( isInit ) { tmpl.init = loc; }
+			loc.makeCommitted();
+			stateMap.put( state, loc );
+		}
+	}
+
+//	var costs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "cost").first().attributes;
+//	var minTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().attributes;
+//	var maxTs:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().attributes;
+
+//	var costType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "cost").first().valueType;
+//	var minTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "mintime").first().valueType;
+//	var maxTType:	UATV!Type	= UATV!Domain.allInstances().select(d|d.name == "maxtime").first().valueType;
+
+	var choiceState : Integer = 0; 
+
+	// Add all transistions ?
+	for (state : IMA!State in ima.states) {
+		// Lookup state location 
+		if( state.outgoing.size() > 0 ){
+			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
+			var beIDsCollaction = state.outgoing.collect( i|i.beId );
+			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
+				if( beID <> "SUCCESS" and beID <> "FAIL" ){
+					// For node BE lookup (name and value) for purpose == CostPerpose CostType == ON_ACTIVATION
+					var activationCost;
+					if ( useCORA ) { activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger(); }
+					// For node BE lookup (name and value) for purpose == CostPerpose CostType == WHILE_ACTIVE 
+					var activeCost;
+					if ( useCORA ) { activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger(); }
+					// For node BE lookup (name and value) for purpose == TimePerpose TimeType == MINIMUM 
+					var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
+					// For node BE lookup (name and value) for purpose == TimePerpose TimeType == MAXIMUM 
+					var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
+					// Make choice state
+					var choice = tmpl.createLocation("c_" + choiceState );
+					choiceState++;
+					// Add invariant
+					if ( useCORA ) { 
+						choice.setInvariant(createConjunction(
+							timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
+							createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); 
+					} else {
+						choice.setInvariant( timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL) ); 
+					}
+					
+					// create edge from source to choice
+					var srcLocation = stateMap.get(state);
+					var toChoice = tmpl.createEdge(srcLocation, choice).resetClock(timeVar);
+					// create guard from source to choice
+					if ( useCORA ) {
+						var incrementer = createAssignmentExpr(
+								createVariable("cost").createReferringExpression(),
+							    createLiteralExpression( activationCost )
+						);
+						incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;					
+						toChoice.addUpdate(incrementer);
+					}
+					// Processed successfull distuptions
+					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+					for ( disruption in succesfullDisruptions ){
+						// create transition
+						var targetLocation = stateMap.get(disruption.target);
+						var toSuccess = tmpl.createEdge(choice, targetLocation);
+						// create guard
+						toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
+					}
+					// Processed failed distuptions
+					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+					var probabilityDividerFailedDisruptions = failedDisruptions.size();
+					for ( disruption in failedDisruptions ){
+						// create transition
+						var targetLocation = stateMap.get(disruption.target);
+						var toFailure = tmpl.createEdge(choice, targetLocation);
+					}
+				} else { /* end for !SUCCES and !FAIL */
+					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
+						for ( disruption in disruptions ) {
+							//maStr = maStr.concat( toFinalTransitionString( printDot, state.id, disruption.target.id, beID ) );
+						}
+					}
+				}
+			}
+		}
+	}	
+	
+/*
+	var disruptions = IMA!Disruption.allInstances();
+	disruptions.size().println("IMA.disruptions.size() = ");
+
+	"Disruption >> ".println();
+	disruptions.size().println("ima.disruptions.size() = ");
+	for (d : IMA!Disruption in disruptions ) {
+		var converted = d.equivalent();
+		if (converted <> null) {
+			converted.type().println("equivalent type = ");
+			converted.size().println("size = ");
+			converted.println("converted = ");
+		} else {
+			if (converted == null) { "converted <> null".println(); }		
+		}
+	}
+*/
+	var decl = new Uppaal!TemplateDeclaration();
+	decl.declaredTemplate = new Uppaal!RedefinedTemplate();
+	decl.declaredTemplate.referredTemplate = tmpl;
+	decl.declaredTemplate.name = "toplevel";
+	
+	self.template.add(tmpl);
+	self.systemDeclarations.declaration.add(decl);
+	self.systemDeclarations.system.instantiationList.at(0).template.add(decl.declaredTemplate);
+
+	return tmpl;
+}
+
+
+
+
+/*
+rule Disruption
+	transform d : IMA!Disruption
+	to ret : List {
+	System.out.println("ETL>Disruption IMA!Disruption -> List >>");
+
+	ret.add(1);
+	
+	System.out.println("ETL>Disruption IMA!Disruption -> List <<");
+}
+
+rule State
+	transform d : IMA!State
+	to ret : Uppaal!Location {
+//	System.out.println("ETL>State IMA!State -> List >>");
+	
+	ret.name = d.id.toString();
+	ret.locationTimeKind = Uppaal!LocationKind#NORMAL;
+	ret.makeCommitted();
+	//ret.add( createLocation( d.id.asString() ) );
+
+//	System.out.println("ETL>State IMA!State -> List <<");
+}
+*/

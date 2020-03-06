@@ -1,7 +1,7 @@
 import "IMA2UppaalCommon.etl";
 
 pre {
-	System.out.println("IMA2Uppaal.etl:pre");
+	System.out.println("IMA2UppaalCORA.etl:pre");
 }
 
 rule Base
@@ -31,5 +31,5 @@ rule Base
 	var iList = new Uppaal!InstantiationList();
 	out.systemDeclarations.system.instantiationList.add(iList);
 
-	out.addTopLevel( ima, false );
+	out.addTopLevel( ima, true );
 }

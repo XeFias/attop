@@ -73,7 +73,10 @@ public class IMA2Uppaal extends EpsilonTransformer {
 	@Override
 	public Map<Language, String> getTransformations() {
 		EnumMap<Language, String> ret = new EnumMap<Language, String>(Language.class);
-		ret.put(Language.UPPAAL, "transformations/FullModel/IMA2Uppaal.etl");
+		String etl = "IMA2Uppaal.etl";
+		/* Intentional reusing class UAT2Uppaal i.s.o. IMA2Uppaal to keep one source of truth.*/
+		if ( UAT2Uppaal.USE_CORA ) { etl = "IMA2UppaalCORA.etl"; }
+		ret.put( Language.UPPAAL, "transformations/FullModel/" + etl );
 		return ret;
 	}
 }

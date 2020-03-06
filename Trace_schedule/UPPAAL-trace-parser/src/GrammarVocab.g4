@@ -13,6 +13,7 @@ RB: ')';
 LSB: '[';
 RSB: ']';
 ASSIGN: ':=';
+ADDASSIGN: '+=';
 
 COLON: ':';
 SEMI: ';';

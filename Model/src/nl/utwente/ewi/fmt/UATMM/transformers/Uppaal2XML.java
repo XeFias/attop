@@ -76,9 +76,11 @@ public class Uppaal2XML implements ITransformer
 		Object o = res.getContents().get(0);
 		CharSequence xml;
 		if (o instanceof NSTA) {
+			Boolean useCORA = false;
 			NSTA nta = (NSTA)o;
 			Serialization s = new Serialization();
-			xml = s.main(nta);
+			if (UAT2Uppaal.USE_CORA) { useCORA = true; } else {useCORA = false; }
+			xml = s.main(nta, useCORA);
 		} else {
 			System.err.println(o.getClass());
 			throw new IllegalArgumentException("Input model is not in proper Uppaal metamodel format");

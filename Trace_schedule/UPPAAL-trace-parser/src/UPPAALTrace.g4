@@ -124,6 +124,7 @@ assignment
     OBJECTREF ASSIGN (value | expr)
     | OBJECTREF PLUS PLUS
     | OBJECTREF MINUS MINUS
+    | OBJECTREF ADDASSIGN (value | expr) 
 ; //verifyta
 
 funcAssignment

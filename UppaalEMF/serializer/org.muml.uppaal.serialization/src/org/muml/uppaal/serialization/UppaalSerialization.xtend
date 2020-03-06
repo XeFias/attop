@@ -88,9 +88,10 @@ class UppaalSerialization {
 	}
 	
 	// create root
-	def main(NTA it) '''
+	def main(NTA it, Boolean useCora) '''
 	<?xml version="1.0" encoding="utf-8"?>
-	<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>
+	«IF useCora»<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_1.dtd'>«ENDIF»
+	«IF !useCora»<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>«ENDIF»
 		<nta>
 			<declaration>
 	«declarations(globalDeclarations)»
