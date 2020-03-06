@@ -364,6 +364,7 @@ public class ATTGUI extends JFrame {
 		add(c);
 		doTransform.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				UAT2Uppaal.USE_CORA = false;
 				boolean runPostProc = false;
 				ArrayList<String> arguments = new ArrayList<String>();
 				arguments.add("--keep-temporary-files");
