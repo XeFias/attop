@@ -9,27 +9,177 @@ rule Base
 	to out : Uppaal!NSTA {
 	
 	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA >>");
-	out.int = new Uppaal!PredefinedType();
-	out.int.name = "int";
-	out.int.type = Uppaal!BuiltInType#INT;
-	out.chan  = new Uppaal!PredefinedType();
-	out.chan.name = "chan";
-	out.chan.type = Uppaal!BuiltInType#CHAN;
-	out.bool  = new Uppaal!PredefinedType();
-	out.bool.name = "bool";
-	out.bool.type = Uppaal!BuiltInType#BOOL;
-	out.void  = new Uppaal!PredefinedType();
-	out.void.name = "void";
-	out.void.type = Uppaal!BuiltInType#VOID;
-	out.clock  = new Uppaal!PredefinedType();
-	out.clock.name = "clock";
-	out.clock.type = Uppaal!BuiltInType#CLOCK;
-	out.double  = new Uppaal!DoubleType();
 
-	out.systemDeclarations = new Uppaal!SystemDeclarations();
-	out.systemDeclarations.system = new Uppaal!System();
-	var iList = new Uppaal!InstantiationList();
-	out.systemDeclarations.system.instantiationList.add(iList);
+	var monolith = out.initializeTemplate( ima.states );
+	
+	var tmpl 	= monolith.get("tmpl");
+	var stateMap= monolith.get("stateMap");
+	var timeVar	= monolith.get("timeVar");
 
-	out.addTopLevel( ima, false );
+
+	out.addStates( tmpl, stateMap, ima.states, timeVar );
+}
+
+operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template, 
+								stateMap: Map(IMA!State,Uppaal!Location),
+								states	: Set(IMA!State),
+								timeVar	: Uppaal!Variable ) : Uppaal!Template {
+	var choiceState : Integer = 0; 
+
+	// Add all transistions ?
+	for (state : IMA!State in states) {
+		// Lookup state location 
+		if( state.outgoing.size() > 0 ){
+			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
+			var beIDsCollaction = state.outgoing.collect( i|i.beId );
+			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
+				if( beID <> "SUCCESS" and beID <> "FAIL" ){
+					// Its a timed BE
+					if ( UATV!Domain.allInstances().select(d|d.name == "mintime").size() > 0 and
+						 UATV!Domain.allInstances().select(d|d.name == "maxtime").size() > 0 ) {
+						choiceState = addTimeBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState );
+					} else if (	getProbability( beID ) > -1 ) {// Its a probabilistic BE
+						choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState );
+					} else {
+						throw "Unable to determine the type of BE " + beID;
+					}
+				}
+			}
+		}
+	}	
+	
+	return tmpl;
+}
+
+operation addTimeBasedBE(	tmpl	: Uppaal!Template, 
+							stateMap: Map(IMA!State,Uppaal!Location),
+							timeVar	: Uppaal!Variable,
+							state	: IMA!State,
+							beID	: String,
+							choiceState : Integer ) {
+	
+	var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
+	var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
+	
+	// Make choice state
+	var choice = tmpl.createLocation("c_" + choiceState );
+	choiceState++;
+	// Add invariant
+	choice.setInvariant( timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL) ); 
+	
+	// create edge from source to choice
+	var srcLocation = stateMap.get(state);
+	var toChoice = tmpl.createEdge(srcLocation, choice).resetClock(timeVar);
+	
+	// Processed successfull distuptions
+	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+	for ( disruption in succesfullDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		var toSuccess = tmpl.createEdge(choice, targetLocation);
+		// create guard
+		toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
+	}
+	// Processed failed distuptions
+	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+	var probabilityDividerFailedDisruptions = failedDisruptions.size();
+	for ( disruption in failedDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		var toFailure = tmpl.createEdge(choice, targetLocation);
+	}
+
+	return choiceState;
+}
+
+operation addProbabilityBasedBE(tmpl	: Uppaal!Template, 
+								stateMap: Map(IMA!State,Uppaal!Location),
+								timeVar	: Uppaal!Variable,
+								state	: IMA!State,
+								beID	: String,
+								choiceState : Integer ) {
+
+	var srcLocation = stateMap.get(state);
+	var choice = tmpl.createChanceNode("Choosing_" + choiceState);
+	choiceState++;
+
+	var hasTimeDelay = hasTimeDelay( beID );
+	if ( hasTimeDelay ){
+		var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+		choiceState++;
+		delayLocation.exitRate = createLiteralExpression( getRate( beID ) );
+		tmpl.createEdge(srcLocation, delayLocation);
+		tmpl.createEdge(delayLocation, choice);
+
+	} else {
+		tmpl.createEdge(srcLocation, choice);
+	}
+
+	var prob : Real = getProbability( beID);
+	var weight1 : Integer = (prob * 32768.0).round();
+	var weight2 : Integer = 32768 - weight1;
+	if (weight1 == 32768 and prob < 1.0) {
+		System.err.println("Warning: BE" + beID + " has very high probability rounding off to 1, results will be inaccurate.");
+		weight1 = 32767;
+		weight2 = 1;
+	} else if (prob == 1.0) {
+		weight1 = 1;
+	} else if (weight1 == 0 and prob > 0.0) {
+		System.err.println("Warning: BE" + beID + " has very low probability rounding off to 0, results will be inaccurate.");
+		weight1 = 1;
+		weight2 = 32767;
+	} else if (prob == 0.0) {
+		weight2 = 1;
+	}
+	
+	// Processed successfull distuptions
+	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+	for ( disruption in succesfullDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		//var toSuccess = tmpl.createEdge(choice, targetLocation);
+		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
+	}
+	// Processed failed distuptions
+	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+	var probabilityDividerFailedDisruptions = failedDisruptions.size();
+	for ( disruption in failedDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		//var toFailure = tmpl.createEdge(choice, targetLocation);
+		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
+	}
+
+	return choiceState;
+}
+
+// Utilities
+// Returns an associated completion probability, or -1 if there is no such attribute.
+@cached
+operation getProbability( id : String ) : Real {
+		var attributes = UATV!Attribute.allInstances().select(n | n.node.id == id);
+		var delayAttrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!ProbabilityPurpose));
+		var expAttrs = delayAttrs.select(a | a.eContainer.purpose.probType = UATV!ProbabilityType#COMPLETION);
+		if (expAttrs.isEmpty())
+			return -1;
+		return expAttrs.first().value.value.asReal();
+}
+
+// Returns whether the node has any attributes with time purpose.
+@cached
+operation hasTimeDelay( id : String ) : Boolean {
+		var attributes = UATV!Attribute.allInstances().select(n | n.node.id == id);
+		var delayAttrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!TimePurpose));
+		return not delayAttrs.isEmpty();
+}
+
+// Returns an associated completion delay, or -1 if there is no such attribute.
+@cached
+operation getRate( id : String ) : Real {
+	var attributes = UATV!Attribute.allInstances().select(n | n.node.id == id);
+	var delayAttrs = attributes.select(a | a.eContainer.purpose.isKindOf(UATV!TimePurpose));
+	var expAttrs = delayAttrs.select(a | a.eContainer.purpose.timeType = UATV!TimeType#EXPONENTIAL);
+	if (expAttrs.isEmpty())
+		return -1;
+	return expAttrs.first().value.value.asReal();
 }

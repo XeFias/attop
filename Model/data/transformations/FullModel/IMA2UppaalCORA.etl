@@ -9,27 +9,83 @@ rule Base
 	to out : Uppaal!NSTA {
 	
 	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA >>");
-	out.int = new Uppaal!PredefinedType();
-	out.int.name = "int";
-	out.int.type = Uppaal!BuiltInType#INT;
-	out.chan  = new Uppaal!PredefinedType();
-	out.chan.name = "chan";
-	out.chan.type = Uppaal!BuiltInType#CHAN;
-	out.bool  = new Uppaal!PredefinedType();
-	out.bool.name = "bool";
-	out.bool.type = Uppaal!BuiltInType#BOOL;
-	out.void  = new Uppaal!PredefinedType();
-	out.void.name = "void";
-	out.void.type = Uppaal!BuiltInType#VOID;
-	out.clock  = new Uppaal!PredefinedType();
-	out.clock.name = "clock";
-	out.clock.type = Uppaal!BuiltInType#CLOCK;
-	out.double  = new Uppaal!DoubleType();
 
-	out.systemDeclarations = new Uppaal!SystemDeclarations();
-	out.systemDeclarations.system = new Uppaal!System();
-	var iList = new Uppaal!InstantiationList();
-	out.systemDeclarations.system.instantiationList.add(iList);
+	var monolith = out.initializeTemplate( ima.states );
 
-	out.addTopLevel( ima, true );
+	var tmpl 	= monolith.get("tmpl");
+	var stateMap= monolith.get("stateMap");
+	var timeVar	= monolith.get("timeVar");
+
+	out.addStates( tmpl, stateMap, ima.states, timeVar );
 }
+
+operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template, 
+								stateMap: Map(IMA!State,Uppaal!Location),
+								states	: Set(IMA!State),
+								timeVar	: Uppaal!Variable ) : Uppaal!Template {
+	if ( UATV!Domain.allInstances().select(d|d.name == "cost").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "mintime").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "maxtime").size() == 0) {
+		throw "The BEs in the itermidiate automata doe not have the required domains 'cost', 'mintime' or 'mintime'";	 
+	} 
+
+	var choiceState : Integer = 0; 
+
+	// Add all transistions ?
+	for (state : IMA!State in states) {
+		// Lookup state location 
+		if( state.outgoing.size() > 0 ){
+			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
+			var beIDsCollaction = state.outgoing.collect( i|i.beId );
+			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
+				if( beID <> "SUCCESS" and beID <> "FAIL" ){
+					var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
+					var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
+					var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
+					var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
+					// Make choice state
+					var choice = tmpl.createLocation("c_" + choiceState );
+					choiceState++;
+					// Add invariant
+					choice.setInvariant(createConjunction(
+						timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
+						createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); 
+					
+					// create edge from source to choice
+					var srcLocation = stateMap.get(state);
+					var toChoice = tmpl.createEdge(srcLocation, choice).resetClock(timeVar);
+					// create guard from source to choice
+					var incrementer = createAssignmentExpr(
+							createVariable("cost").createReferringExpression(),
+						    createLiteralExpression( activationCost )
+					);
+					incrementer.operator=Uppaal!AssignmentOperator#PLUS_EQUAL;					
+					toChoice.addUpdate(incrementer);
+
+					// Processed successfull distuptions
+					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+					for ( disruption in succesfullDisruptions ){
+						// create transition
+						var targetLocation = stateMap.get(disruption.target);
+						var toSuccess = tmpl.createEdge(choice, targetLocation);
+						// create guard
+						toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
+					}
+					// Processed failed distuptions
+					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+					var probabilityDividerFailedDisruptions = failedDisruptions.size();
+					for ( disruption in failedDisruptions ){
+						// create transition
+						var targetLocation = stateMap.get(disruption.target);
+						var toFailure = tmpl.createEdge(choice, targetLocation);
+					}
+				}
+			}
+		}
+	}	
+
+	return tmpl;
+}
+
+
+
