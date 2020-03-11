@@ -1,0 +1,6 @@
+import "IMA2Uppaal.etl";
+
+pre {
+	var globalCostVariable : Uppaal!Variable;
+	var globalWithCost = false;
+}

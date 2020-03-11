@@ -1,29 +1,28 @@
 import "IMA2UppaalCommon.etl";
 
-pre {
-	System.out.println("IMA2Uppaal.etl:pre");
-}
-
 rule Base
 	transform ima : IMA!InterimAutomaton
 	to out : Uppaal!NSTA {
 	
-	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA >>");
+	out.initializePredefinedTypes();
 
 	var monolith = out.initializeTemplate( ima.states );
+
+	out.globalDeclarations = new Uppaal!GlobalDeclarations();
+	out.declareClock("cost");
 	
 	var tmpl 	= monolith.get("tmpl");
 	var stateMap= monolith.get("stateMap");
 	var timeVar	= monolith.get("timeVar");
 
-
-	out.addStates( tmpl, stateMap, ima.states, timeVar );
+	out.addStates( tmpl, stateMap, ima.states, timeVar, globalWithCost );
 }
 
 operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template, 
 								stateMap: Map(IMA!State,Uppaal!Location),
 								states	: Set(IMA!State),
-								timeVar	: Uppaal!Variable ) : Uppaal!Template {
+								timeVar	: Uppaal!Variable,
+								globalWithCost : Boolean  ) : Uppaal!Template {
 	var choiceState : Integer = 0; 
 
 	// Add all transistions ?
@@ -34,15 +33,7 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
 				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					// Its a timed BE
-					if ( UATV!Domain.allInstances().select(d|d.name == "mintime").size() > 0 and
-						 UATV!Domain.allInstances().select(d|d.name == "maxtime").size() > 0 ) {
-						choiceState = addTimeBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState );
-					} else if (	getProbability( beID ) > -1 ) {// Its a probabilistic BE
-						choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState );
-					} else {
-						throw "Unable to determine the type of BE " + beID;
-					}
+					choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
 				}
 			}
 		}
@@ -51,69 +42,44 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 	return tmpl;
 }
 
-operation addTimeBasedBE(	tmpl	: Uppaal!Template, 
-							stateMap: Map(IMA!State,Uppaal!Location),
-							timeVar	: Uppaal!Variable,
-							state	: IMA!State,
-							beID	: String,
-							choiceState : Integer ) {
-	
-	var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
-	var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
-	
-	// Make choice state
-	var choice = tmpl.createLocation("c_" + choiceState );
-	choiceState++;
-	// Add invariant
-	choice.setInvariant( timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL) ); 
-	
-	// create edge from source to choice
-	var srcLocation = stateMap.get(state);
-	var toChoice = tmpl.createEdge(srcLocation, choice).resetClock(timeVar);
-	
-	// Processed successfull distuptions
-	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
-	for ( disruption in succesfullDisruptions ){
-		// create transition
-		var targetLocation = stateMap.get(disruption.target);
-		var toSuccess = tmpl.createEdge(choice, targetLocation);
-		// create guard
-		toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
-	}
-	// Processed failed distuptions
-	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
-	var probabilityDividerFailedDisruptions = failedDisruptions.size();
-	for ( disruption in failedDisruptions ){
-		// create transition
-		var targetLocation = stateMap.get(disruption.target);
-		var toFailure = tmpl.createEdge(choice, targetLocation);
-	}
-
-	return choiceState;
-}
-
 operation addProbabilityBasedBE(tmpl	: Uppaal!Template, 
 								stateMap: Map(IMA!State,Uppaal!Location),
 								timeVar	: Uppaal!Variable,
 								state	: IMA!State,
 								beID	: String,
-								choiceState : Integer ) {
+								choiceState : Integer,
+								globalWithCost : Boolean  ) {
+	// Select between rate or time delay information	
+	if ( getRate( beID ) <> -1 ){
+		return addProbabilityBasedBEWithRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
+	} else {
+		return addProbabilityBasedBEWithoutRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
+	}
+}
+
+operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template, 
+										stateMap: Map(IMA!State,Uppaal!Location),
+										timeVar	: Uppaal!Variable,
+										state	: IMA!State,
+										beID	: String,
+										choiceState : Integer,
+										globalWithCost : Boolean ) {
+	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
+	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
 
 	var srcLocation = stateMap.get(state);
 	var choice = tmpl.createChanceNode("Choosing_" + choiceState);
 	choiceState++;
 
-	var hasTimeDelay = hasTimeDelay( beID );
-	if ( hasTimeDelay ){
-		var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
-		choiceState++;
-		delayLocation.exitRate = createLiteralExpression( getRate( beID ) );
-		tmpl.createEdge(srcLocation, delayLocation);
-		tmpl.createEdge(delayLocation, choice);
+	var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+	choiceState++;
 
-	} else {
-		tmpl.createEdge(srcLocation, choice);
+	if ( globalWithCost ) {
+		// cost accumulator
+		delayLocation.setInvariant( createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) );
 	}
+	// exit rate 
+	delayLocation.exitRate = createLiteralExpression( getRate( beID ) );
 
 	var prob : Real = getProbability( beID);
 	var weight1 : Integer = (prob * 32768.0).round();
@@ -131,15 +97,28 @@ operation addProbabilityBasedBE(tmpl	: Uppaal!Template,
 	} else if (prob == 0.0) {
 		weight2 = 1;
 	}
-	
+
+	var fromSource = tmpl.createEdge(srcLocation, delayLocation);	
+	fromSource = fromSource.resetClock(timeVar); // x := 0
+	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
+	if ( globalWithCost ) {
+		fromSource.addUpdate(
+			createAssignmentExpr(
+				createVariable("cost").createReferringExpression(),
+				createSum(	createVariable("cost").createReferringExpression(),
+							createLiteralExpression( activationCost ) ) ) );
+	}
+	var toChoice = tmpl.createEdge( delayLocation, choice );
+
 	// Processed successfull distuptions
 	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 	for ( disruption in succesfullDisruptions ){
 		// create transition
 		var targetLocation = stateMap.get(disruption.target);
 		//var toSuccess = tmpl.createEdge(choice, targetLocation);
-		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
+		tmpl.createChanceEdge(choice, targetLocation, weight1);
 	}
+	
 	// Processed failed distuptions
 	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
 	var probabilityDividerFailedDisruptions = failedDisruptions.size();
@@ -152,6 +131,89 @@ operation addProbabilityBasedBE(tmpl	: Uppaal!Template,
 
 	return choiceState;
 }
+
+
+operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template, 
+											stateMap: Map(IMA!State,Uppaal!Location),
+											timeVar	: Uppaal!Variable,
+											state	: IMA!State,
+											beID	: String,
+											choiceState : Integer,
+											globalWithCost : Boolean  ) {
+	var minT = getTime( beID, UATV!TimeType#MINIMUM ).asInteger();
+	var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
+
+	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
+	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
+
+	var srcLocation = stateMap.get(state);
+	var choice = tmpl.createChanceNode("Choosing_" + choiceState);
+	choiceState++;
+
+	var fromSource = tmpl.createEdge(srcLocation, choice);	
+	fromSource = fromSource.resetClock(timeVar);
+	
+	var prob : Real = getProbability( beID);
+	var weight1 : Integer = (prob * 32768.0).round();
+	var weight2 : Integer = 32768 - weight1;
+	if (weight1 == 32768 and prob < 1.0) {
+		System.err.println("Warning: BE" + beID + " has very high probability rounding off to 1, results will be inaccurate.");
+		weight1 = 32767;
+		weight2 = 1;
+	} else if (prob == 1.0) {
+		weight1 = 1;
+	} else if (weight1 == 0 and prob > 0.0) {
+		System.err.println("Warning: BE" + beID + " has very low probability rounding off to 0, results will be inaccurate.");
+		weight1 = 1;
+		weight2 = 32767;
+	} else if (prob == 0.0) {
+		weight2 = 1;
+	}
+
+	// Processed successfull distuptions
+	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+	for ( disruption in succesfullDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+		choiceState++;
+
+		if ( globalWithCost ){
+			delayLocation.setInvariant(createConjunction(
+				timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
+				createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); 
+		} else {
+			delayLocation.setInvariant(timeVar.simpleComparison( maxT, Uppaal!CompareOperator#LESS_OR_EQUAL ) ); 
+		}
+		
+		tmpl.createChanceEdge(choice, delayLocation, weight1);
+		var toSuccess = tmpl.createEdge(delayLocation, targetLocation);
+		// add guard if no delay
+		toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
+	
+		if ( globalWithCost ){
+			// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
+			fromSource.addUpdate(
+				createAssignmentExpr(
+					createVariable("cost").createReferringExpression(),
+					createSum(	createVariable("cost").createReferringExpression(),
+								createLiteralExpression( activationCost ) ) ) );
+		}
+	}
+	
+	// Processed failed distuptions
+	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+	var probabilityDividerFailedDisruptions = failedDisruptions.size();
+	for ( disruption in failedDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		//var toFailure = tmpl.createEdge(choice, targetLocation);
+		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
+	}
+
+	return choiceState;
+}
+
 
 // Utilities
 // Returns an associated completion probability, or -1 if there is no such attribute.

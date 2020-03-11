@@ -36,6 +36,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import nl.utwente.ewi.fmt.UATMM.transformers.IMA2Uppaal;
 import nl.utwente.ewi.fmt.UATMM.transformers.UAT2Uppaal;
 
 @SuppressWarnings("serial")
@@ -289,12 +290,15 @@ public class ATTGUI extends JFrame {
 		File optionFile = File.createTempFile("uppaaloptions", ".txt");
 		out = new FileOutputStream(optionFile);
 		UAT2Uppaal.USE_CORA = false;
+		IMA2Uppaal.USE_COST = false;
 		if (reachQuery.isSelected()) {
 			out.write("-s -o2 -t0".getBytes());
 		} else if (probQuery.isSelected()) {
 			out.write("-s -E 0.01".getBytes());
+			IMA2Uppaal.USE_COST = true;
 		} else if (expectedQuery.isSelected()) {
 			out.write("-s -E 0.01".getBytes());
+			IMA2Uppaal.USE_COST = true;
 		} else if (optQuery.isSelected()) {
 			if (optSteps.isSelected()) {
 				out.write("-s -o 1 -t 1".getBytes());
@@ -302,6 +306,7 @@ public class ATTGUI extends JFrame {
 				out.write("-s -o 1 -t 2".getBytes());
 			} else { /* Optimize for cost in CORA */
 				out.write("-s -o 3 -t 3".getBytes());
+				IMA2Uppaal.USE_COST = true;
 				UAT2Uppaal.USE_CORA = true;
 			}
 		}
@@ -368,7 +373,6 @@ public class ATTGUI extends JFrame {
 				boolean runPostProc = false;
 				ArrayList<String> arguments = new ArrayList<String>();
 				arguments.add("--keep-temporary-files");
-				System.out.println("isSelected = " + useMonolith.isSelected());
 				if ( useMonolith.isSelected() ) {
 					System.out.println("Using Monolith version!");
 					arguments.add("-m");

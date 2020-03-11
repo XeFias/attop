@@ -292,6 +292,22 @@ operation Uppaal!Template declareClock(name : String) : Uppaal!Variable
 	return ret;
 }
 
+/** Add a declaration for a clock with the given name to the local declarations in the Global declaration. */
+operation Uppaal!NSTA declareClock(name : String) : Uppaal!Variable
+{
+	var ret = createVariable(name);
+	var decl = new Uppaal!ClockVariableDeclaration();
+	decl.variable.add(ret);
+	decl.typeDefinition = new Uppaal!TypeReference();
+	decl.typeDefinition.referredType = Uppaal!PredefinedType.allInstances().select(t | t.name == "clock").first();
+	if (self.globalDeclarations.isUndefined()) {
+		self.globalDeclarations = new Uppaal!LocalDeclarations();
+	}
+	self.globalDeclarations.declaration.add(decl);
+	return ret;
+}
+
+
 /** Create a function with the given name, no parameter and void return type */
 operation createFunction(fName : String) : Uppaal!Function
 {

@@ -28,7 +28,7 @@ import org.eclipse.epsilon.etl.EtlModule;
 public class IMA2Uppaal extends EpsilonTransformer {
 	/** The singleton instance of this transformer. */
 	private static IMA2Uppaal INSTANCE;
-	//public static boolean USE_CORA = false; 
+	public static boolean USE_COST = false; 
 	// ATTop currently uses static UAT2Uppaal.USE_CORE as global.
 	
 	/** Returns the singleton instance of this transformer. */
@@ -73,9 +73,11 @@ public class IMA2Uppaal extends EpsilonTransformer {
 	@Override
 	public Map<Language, String> getTransformations() {
 		EnumMap<Language, String> ret = new EnumMap<Language, String>(Language.class);
-		String etl = "IMA2Uppaal.etl";
+		String etl = "";
 		/* Intentional reusing class UAT2Uppaal i.s.o. IMA2Uppaal to keep one source of truth.*/
 		if ( UAT2Uppaal.USE_CORA ) { etl = "IMA2UppaalCORA.etl"; }
+		else if (IMA2Uppaal.USE_COST) { etl = "IMA2UppaalWithCost.etl"; }
+		else { etl = "IMA2UppaalNoCost.etl"; }
 		ret.put( Language.UPPAAL, "transformations/FullModel/" + etl );
 		return ret;
 	}

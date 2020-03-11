@@ -56,7 +56,6 @@ public class ATTMain {
 		HashMap<Language, String> outputs = new HashMap<Language, String>();
 		
 		for (int i = 0; i < args.length; i += 3) {
-			System.out.println("FOR ...");
 			if (args[i].equals("-m")) {
 				i -= 2;
 				System.out.println("use monolith");;

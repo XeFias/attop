@@ -6,12 +6,27 @@ operation getAllAttributes() : Sequence {
 	return UATV!Attribute.allInstances();
 }
 
-operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, Any) {
-	
+operation Uppaal!NSTA initializePredefinedTypes(){
+	self.int = new Uppaal!PredefinedType();
+	self.int.name = "int";
+	self.int.type = Uppaal!BuiltInType#INT;
+	self.chan  = new Uppaal!PredefinedType();
+	self.chan.name = "chan";
+	self.chan.type = Uppaal!BuiltInType#CHAN;
+	self.bool  = new Uppaal!PredefinedType();
+	self.bool.name = "bool";
+	self.bool.type = Uppaal!BuiltInType#BOOL;
+	self.void  = new Uppaal!PredefinedType();
+	self.void.name = "void";
+	self.void.type = Uppaal!BuiltInType#VOID;
 	self.clock  = new Uppaal!PredefinedType();
 	self.clock.name = "clock";
 	self.clock.type = Uppaal!BuiltInType#CLOCK;
+	self.double  = new Uppaal!DoubleType();
+}
 
+operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, Any) {
+	
 	self.systemDeclarations = new Uppaal!SystemDeclarations();
 	self.systemDeclarations.system = new Uppaal!System();
 	var iList = new Uppaal!InstantiationList();
@@ -23,6 +38,8 @@ operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, 
 	var tmpl : Uppaal!Template = new Uppaal!Template();
 	tmpl.name = "Monolith";
 	tmpl.declarations = new Uppaal!LocalDeclarations();
+	
+	tmpl.declareClock("localClock");
 
 	// The clock
 	var timeVar:Uppaal!Variable = tmpl.declareClock("x");

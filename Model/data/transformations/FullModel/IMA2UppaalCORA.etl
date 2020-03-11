@@ -9,6 +9,7 @@ rule Base
 	to out : Uppaal!NSTA {
 	
 	System.out.println("ETL>Base IMA!InterimAutomation -> Uppaal!NSTA >>");
+	out.initializePredefinedTypes();
 
 	var monolith = out.initializeTemplate( ima.states );
 
