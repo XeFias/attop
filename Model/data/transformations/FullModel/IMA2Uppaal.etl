@@ -72,6 +72,7 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 	choiceState++;
 
 	var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+	delayLocation.addComment( beID );
 	choiceState++;
 
 	if ( globalWithCost ) {
@@ -100,6 +101,8 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 
 	var fromSource = tmpl.createEdge(srcLocation, delayLocation);	
 	fromSource = fromSource.resetClock(timeVar); // x := 0
+	fromSource.addComment("t_" + beID );
+
 	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
 	if ( globalWithCost ) {
 		fromSource.addUpdate(
@@ -109,14 +112,13 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 							createLiteralExpression( activationCost ) ) ) );
 	}
 	var toChoice = tmpl.createEdge( delayLocation, choice );
-
 	// Processed successfull distuptions
 	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 	for ( disruption in succesfullDisruptions ){
 		// create transition
 		var targetLocation = stateMap.get(disruption.target);
-		//var toSuccess = tmpl.createEdge(choice, targetLocation);
-		tmpl.createChanceEdge(choice, targetLocation, weight1);
+		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
+		toSuccess.addComment("Success");
 	}
 	
 	// Processed failed distuptions
@@ -125,8 +127,8 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 	for ( disruption in failedDisruptions ){
 		// create transition
 		var targetLocation = stateMap.get(disruption.target);
-		//var toFailure = tmpl.createEdge(choice, targetLocation);
 		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
+		toFailure.addComment("Fail");
 	}
 
 	return choiceState;
@@ -152,6 +154,7 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 
 	var fromSource = tmpl.createEdge(srcLocation, choice);	
 	fromSource = fromSource.resetClock(timeVar);
+	fromSource.addComment("t_" + beID );
 	
 	var prob : Real = getProbability( beID);
 	var weight1 : Integer = (prob * 32768.0).round();
@@ -176,6 +179,7 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		// create transition
 		var targetLocation = stateMap.get(disruption.target);
 		var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+		delayLocation.addComment( "¬"+beID );
 		choiceState++;
 
 		if ( globalWithCost ){
@@ -190,6 +194,7 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		var toSuccess = tmpl.createEdge(delayLocation, targetLocation);
 		// add guard if no delay
 		toSuccess.setGuard( timeVar.simpleComparison( minT, Uppaal!CompareOperator#GREATER_OR_EQUAL ) );
+		toSuccess.addComment("Success");
 	
 		if ( globalWithCost ){
 			// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
@@ -209,6 +214,7 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		var targetLocation = stateMap.get(disruption.target);
 		//var toFailure = tmpl.createEdge(choice, targetLocation);
 		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
+		toFailure.addComment("Fail");
 	}
 
 	return choiceState;

@@ -46,6 +46,7 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 					var maxT = getTime( beID, UATV!TimeType#MAXIMUM ).asInteger();
 					// Make choice state
 					var choice = tmpl.createLocation("c_" + choiceState );
+					choice.addComment( beID );
 					choiceState++;
 					// Add invariant
 					choice.setInvariant(createConjunction(
