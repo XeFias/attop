@@ -42,7 +42,7 @@ operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
 					var probability = probabilityValues.selectOne(a|a.node.id == beID ).value.value;
 					var rate = rateValues.selectOne(a|a.node.id == beID ).value.value;
 
-					maStr = maStr.concat( toMarkoveTransitionString( printDot, state.id, probStatesId++, beID, rate ) );
+					maStr = maStr.concat( toMarkoveTransitionString( printDot, state.toString(false), probStatesId++, beID, rate ) );
 					totNrOfTransitions++;
 					if ( printDot ) { // TODO: cleanup duplicate code
 						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId++, beID ) );
@@ -55,7 +55,7 @@ operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
 					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
 					for ( disruption in succesfullDisruptions ){
 						//if ( probabilityValues.get(beID) <> 0 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#SUCCESS, probability / probabilityDividerSuccesfullDisruptions) );
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.toString(false), beID, IMA!StatusType#SUCCESS, probability / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
 						//}
 					}
@@ -64,7 +64,7 @@ operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
 					var probabilityDividerFailedDisruptions = failedDisruptions.size();
 					for ( disruption in failedDisruptions ){
 						//if ( probabilityValues.get(beID) <> 1 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#FAILED, ((1 - probability) / probabilityDividerFailedDisruptions) ) );
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.toString(false), beID, IMA!StatusType#FAILED, ((1 - probability) / probabilityDividerFailedDisruptions) ) );
 							totNrOfTransitions++;
 						//}
 					}

@@ -117,6 +117,10 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 
 		// Propogate SAFE Statuses. ()
 		newState.setSafeStatuses( bottomUp.copyIterator(), be );
+		
+		if ( newState.getNodeStatus(rootNode) == IMA!StatusType#SAFE ){
+			newState.setNodeStatus(rootNode, IMA!StatusType#FAILED);
+		}
 		// Propogate DONTCARE Statuses.
 		newState.propogateDontCareStatuses( topDown.copyIterator() );
 
@@ -291,9 +295,10 @@ operation IMA!State calculateStatusOfAND( gate:UATS!Node )
 						self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
 			// If any has failed is FAILED return FAILED,
 			return IMA!StatusType#FAILED;
-		} else if ( gate.children.exists( child | 
-						self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-			// If any is SAFE return SAFE,
+		} else if ( gate.children.forAll( child |  
+						self.getNodeStatus(child) == IMA!StatusType#SUCCESS 
+						or self.getNodeStatus(child) == IMA!StatusType#SAFE ) ) {
+			// If atleast one is SAFE and the rest is SUCCESS return SAFE
 			return IMA!StatusType#SAFE;
 		} else {
 			// Keep gate Operational.
@@ -314,8 +319,14 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 		} else if ( gate.children.forAll(
 				child | self.getNodeStatus(child) == IMA!StatusType#FAILED
 						or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-			// If all are FAILED of SAFE return FAILED,
-			return IMA!StatusType#FAILED;
+				if (gate.children.exists(
+					child | self.getNodeStatus(child) == IMA!StatusType#SAFE ) ) {
+					// If atleast one is SAFE and the rest is FAILED return SAFE
+					return IMA!StatusType#SAFE;
+				} else {
+					// If all are FAILED return FAILED,
+					return IMA!StatusType#FAILED;
+				}
 		} else {
 			// Keep gate Operational.
 			return IMA!StatusType#OPERATIONAL;
@@ -450,10 +461,14 @@ operation IMA!State calculatedStatusOfSAND( gate:UATS!Node )
 		// If all are SUCCESS return SUCCESS,
 		return IMA!StatusType#SUCCESS;
 	} else if ( gate.children.exists( child | 
-					self.getNodeStatus(child) == IMA!StatusType#FAILED
-					or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
+					self.getNodeStatus(child) == IMA!StatusType#FAILED )) {
 		// If any is FAILED return FAILED,
 		return IMA!StatusType#FAILED;
+	} else if ( gate.children.forAll( child |  
+					self.getNodeStatus(child) == IMA!StatusType#SUCCESS 
+					or self.getNodeStatus(child) == IMA!StatusType#SAFE ) ) {
+		// If atleast one is SAFE and the rest is SUCCESS return SAFE
+		return IMA!StatusType#SAFE;
 	}
 	
 	return IMA!StatusType#OPERATIONAL;
@@ -472,8 +487,13 @@ operation IMA!State calculatedStatusOfSOR( gate:UATS!Node )
 	} else if ( gate.children.forAll(
 			child | self.getNodeStatus(child) == IMA!StatusType#FAILED
 					or self.getNodeStatus(child) == IMA!StatusType#SAFE )) {
-		// If all are FAILED of SAFE return FAILED,
-		return IMA!StatusType#FAILED;
+		if (gate.children.exists(
+			child | self.getNodeStatus(child) == IMA!StatusType#SAFE ) ) {
+			// If atleast one is SAFE and the rest is FAILED return SAFE
+			return IMA!StatusType#SAFE;
+		} else {
+			return IMA!StatusType#FAILED;
+		}
 	}
 
 	return IMA!StatusType#OPERATIONAL;
