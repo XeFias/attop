@@ -5,8 +5,7 @@
   	var javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Starting IMA2AUT generation: ");
 
-	var AUT = buildMAText2(true);
-
+	var AUT = buildMAText(true, false);
 %]
 digraph BCG {
 graph [ dpi = 150 ];
@@ -15,105 +14,3 @@ node [shape = rect];
 0 [peripheries = 2];
 [%=AUT.third()%] 
 }
-[%
-
-operation buildMAText2(printDot:Boolean) : Sequence(Integer, Integer, String) {
-
-	var IMA = IMA!InterimAutomaton.allInstances().first();
-	var states = IMA!State.allInstances();
-	var totNrOfStates = 0;
-	var totNrOfTransitions = 0;
-	var probStatesId = states.size() - 1;
-	if ( printDot ) { probStatesId = states.size() * 2 - 1; }
-
-	// Add values to BEs in attack-tree.
-	// Values for Markov Automata. These are part of the IMA model.
-	// MA specific values
-	var rateValues: 		Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
-	var probabilityValues:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
-
-	var maStr:String = "";
-	for (state in states) {
-		if( state.outgoing.size() > 0 ){
-			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
-			var beIDsCollaction = state.outgoing.collect( i|i.beId );
-			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
-				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					var probability = probabilityValues.selectOne(a|a.node.id == beID ).value.value;
-					var rate = rateValues.selectOne(a|a.node.id == beID ).value.value;
-
-					maStr = maStr.concat( toMarkoveTransitionString( printDot, state.toString(false), probStatesId++, beID, rate ) );
-					totNrOfTransitions++;
-					if ( printDot ) { // TODO: cleanup duplicate code
-						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId++, beID ) );
-					} else {
-						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
-					}
-					totNrOfTransitions++;
-					// Processed successfull distuptions
-					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
-					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
-					for ( disruption in succesfullDisruptions ){
-						//if ( probabilityValues.get(beID) <> 0 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.toString(false), beID, IMA!StatusType#SUCCESS, probability / probabilityDividerSuccesfullDisruptions) );
-							totNrOfTransitions++;
-						//}
-					}
-					// Processed failed distuptions
-					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
-					var probabilityDividerFailedDisruptions = failedDisruptions.size();
-					for ( disruption in failedDisruptions ){
-						//if ( probabilityValues.get(beID) <> 1 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.toString(false), beID, IMA!StatusType#FAILED, ((1 - probability) / probabilityDividerFailedDisruptions) ) );
-							totNrOfTransitions++;
-						//}
-					}
-				} else { /* end for !SUCCES and !FAIL */
-					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
-						for ( disruption in disruptions ) {
-							maStr = maStr.concat( toFinalTransitionString( printDot, state.id, disruption.target.id, beID ) );
-							totNrOfTransitions++;
-						}
-					}
-				}
-			}
-		}
-	}
-	return Sequence{ probStatesId + 1, totNrOfTransitions, maStr };
-}
-
-operation toMarkoveTransitionString(toDot:Boolean, stateID:String, nextProbabilityState:Integer, beID:String, value:Real) : String {
-	if (toDot) {
-		return ("\"" + stateID + "\"" + " -> " + nextProbabilityState + " [label = \"!" + beID + "\\n rate = " + value + "\", style=dashed]\n");
-	} else {
-		return ("("+ stateID + ", \"rate " + value + "\", " + nextProbabilityState + ")\n" );
-	}
-}
-
-operation toDecisionTansactionString(toDot:Boolean, stateID:Integer, nextProbabilityState:Integer, beID:String) : String {
-	if (toDot) {
-		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " [shape=point];\n" );
-	} else {
-		return ( "(" + stateID + ", \"" + beID + "\", 1)\n" );	/*TODO select target state */
-	}
-}
-
-operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, nextState:String, beID:String, negation, value:Real) : String {
-	var negationStr = "";
-	if (negation == IMA!StatusType#FAILED) { negationStr = "¬";}
-	if (toDot) {
-		return (dicisionStateID + " -> " + "\"" + nextState + "\"" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
-	} else {
-		return ( "(" + dicisionStateID + ", \"prob " + value + "\", " + nextState + ")\n" );
-	}
-}
-
-operation toFinalTransitionString(toDot:Boolean, stateID:String, nextState:String, beID:String) : String {
-	if (toDot) {
-		return ( ("\"" + stateID + "\"" + " -> " + "\"" + nextState + "\"" + " [label = \"" + beID + "\"]\n") );
-	} else {
-		return ( "(" + stateID + ", \"" + beID + "\", " + nextState + ")\n" );
-	}
-}
-
-%]

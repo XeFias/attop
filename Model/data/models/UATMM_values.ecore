@@ -61,6 +61,7 @@
       <details key="documentation" value="Probability of emitting a completion signal after the time (if any is specified) has elapsed. If no completion signal is sent, an abort signal is emitted."/>
     </eAnnotations>
     <eLiterals name="COMPLETION" value="1" literal="COMPLETION"/>
+    <eLiterals name="FAILURE" value="2"/>
   </eClassifiers>
   <eClassifiers xsi:type="ecore:EClass" name="RealSequenceType" eSuperTypes="#//Type"/>
   <eClassifiers xsi:type="ecore:EClass" name="RealSequenceValue" eSuperTypes="#//Value">

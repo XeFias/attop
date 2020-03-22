@@ -3,7 +3,7 @@
 
   	var javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Starting IMA2AUT generation: ");
-	var AUT = buildMAText(false);
+	var AUT = buildMAText(false, false);
 	var totNrOfStates = 0;
 	var totNrOfTransitions = 0;
 

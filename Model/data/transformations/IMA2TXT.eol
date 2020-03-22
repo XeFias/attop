@@ -36,7 +36,7 @@
 //					print edge from AT state to related new state with label "prob <(1-prob)/nbr>" 
 
 
-operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
+operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integer, Integer, String) {
 
 	if ( UATV!Domain.allInstances().select(d|d.name == "lambda").size() == 0 or
 		 UATV!Domain.allInstances().select(d|d.name == "prob").size() == 0 ) {
@@ -59,43 +59,63 @@ operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
 	var maStr:String = "";
 	for (state in states) {
 		if( state.outgoing.size() > 0 ){
+			var stateStr = state.id.toString(); 
+			if ( printFullState ) { stateStr = state.toString(false); }
+		
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
 				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					var probability = probabilityValues.selectOne(a|a.node.id == beID ).value.value;
-					var rate = rateValues.selectOne(a|a.node.id == beID ).value.value;
-
-					maStr = maStr.concat( toMarkoveTransitionString( printDot, state.id, probStatesId++, beID, rate ) );
-					totNrOfTransitions++;
+					var probability = probabilityValues.selectOne(a|a.node.id == beID );
+					var rate = rateValues.selectOne(a|a.node.id == beID );
+					
+					if ( rate <> null ) {
+						maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
+						totNrOfTransitions++;
+					} else {
+						maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, 0 ) );
+						totNrOfTransitions++;
+					}
+					
 					if ( printDot ) { // TODO: cleanup duplicate code
 						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId++, beID ) );
 					} else {
 						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
 					}
 					totNrOfTransitions++;
+
 					// Processed successfull distuptions
 					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
 					for ( disruption in succesfullDisruptions ){
-						//if ( probabilityValues.get(beID) <> 0 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#SUCCESS, probability / probabilityDividerSuccesfullDisruptions) );
+						var targetStateStr = disruption.target.id.toString(); 
+						if ( printFullState ) { targetStateStr = disruption.target.toString(false); }
+
+						if ( probability <> null ) {
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, probability.value.value / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
-						//}
+						} else {
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, 1 / probabilityDividerSuccesfullDisruptions) );
+							totNrOfTransitions++;
+						}
 					}
 					// Processed failed distuptions
 					var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
 					var probabilityDividerFailedDisruptions = failedDisruptions.size();
 					for ( disruption in failedDisruptions ){
-						//if ( probabilityValues.get(beID) <> 1 ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, disruption.target.id, beID, IMA!StatusType#FAILED, ((1 - probability) / probabilityDividerFailedDisruptions) ) );
+						if ( probability <> null ) {
+							var targetStateStr = disruption.target.id.toString(); 
+							if ( printFullState ) { targetStateStr = disruption.target.toString(false); }
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#FAILED, ((1 - probability.value.value) / probabilityDividerFailedDisruptions) ) );
 							totNrOfTransitions++;
-						//}
+						}
 					}
 				} else { /* end for !SUCCES and !FAIL */
 					for ( disruptions in state.outgoing.select( i | i.beId == beID ) ){
 						for ( disruption in disruptions ) {
-							maStr = maStr.concat( toFinalTransitionString( printDot, state.id, disruption.target.id, beID ) );
+							var targetStateStr = disruption.target.id.toString(); 
+							if ( printFullState ) { targetStateStr = disruption.target.toString(false); }
+							maStr = maStr.concat( toFinalTransitionString( printDot, stateStr, targetStateStr, beID ) );
 							totNrOfTransitions++;
 						}
 					}
@@ -106,9 +126,9 @@ operation buildMAText(printDot:Boolean) : Sequence(Integer, Integer, String) {
 	return Sequence{ probStatesId + 1, totNrOfTransitions, maStr };
 }
 
-operation toMarkoveTransitionString(toDot:Boolean, stateID:Integer, nextProbabilityState:Integer, beID:String, value:Real) : String {
+operation toMarkoveTransitionString(toDot:Boolean, stateID:String, nextProbabilityState:Integer, beID:String, value:Real) : String {
 	if (toDot) {
-		return (stateID + " -> " + nextProbabilityState + " [label = \"!" + beID + "\\n rate = " + value + "\", style=dashed]\n");
+		return ("\"" + stateID + "\"" + " -> " + nextProbabilityState + " [label = \"!" + beID + "\\n rate = " + value + "\", style=dashed]\n");
 	} else {
 		return ("("+ stateID + ", \"rate " + value + "\", " + nextProbabilityState + ")\n" );
 	}
@@ -123,19 +143,19 @@ operation toDecisionTansactionString(toDot:Boolean, stateID:Integer, nextProbabi
 	}
 }
 
-operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, nextState:Integer, beID:String, negation, value:Real) : String {
+operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, nextState:String, beID:String, negation, value:Real) : String {
 	var negationStr = "";
 	if (negation == IMA!StatusType#FAILED) { negationStr = "¬";}
 	if (toDot) {
-		return (dicisionStateID + " -> " + nextState + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
+		return (dicisionStateID + " -> " + "\"" + nextState + "\"" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
 	} else {
 		return ( "(" + dicisionStateID + ", \"prob " + value + "\", " + nextState + ")\n" );
 	}
 }
 
-operation toFinalTransitionString(toDot:Boolean, stateID:Integer, nextState:Integer, beID:String) : String {
+operation toFinalTransitionString(toDot:Boolean, stateID:String, nextState:String, beID:String) : String {
 	if (toDot) {
-		return ( (stateID + " -> " + nextState + " [label = \"" + beID + "\"]\n") );
+		return ( ("\"" + stateID + "\"" + " -> " + "\"" + nextState + "\"" + " [label = \"" + beID + "\"]\n") );
 	} else {
 		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
 		return ( "(" + stateID + ", \"" + label + "\", " + nextState + ")\n" );

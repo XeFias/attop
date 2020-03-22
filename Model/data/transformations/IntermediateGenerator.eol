@@ -43,7 +43,9 @@ operation generateIntermediateAutomata(
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 			// Do not follow transitions for which be corresponding probability equals 0%.
 			// Note: this is only relevant for MA
+//			be.~nodeRef.id.println("be = ");
 			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
+//				"Yes".println();
 				var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
 													bottomUpIterator,
 													topDownIterator,
@@ -710,17 +712,25 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 }
 // This operation tests for properties which make it possible to skip this transitsion.
 operation skipExploringThisPath( be: UATS!Node, nextStatus ) : Boolean {
-	var skip = false;
-	// Skip when the probability of the transition is 0%.
-	if( be.~values <> null ){ // Do not skip if property .~values is not set
+	if( be.~values <> null ) { // Do not skip if property .~values is not set
+
+		if ( be.nature == UATS!Nature#Fault ) { // be is a Fault 
+			var rate = be.~values.get(IMA!ValueKeys#RATE);
+			var prob = be.~values.get(IMA!ValueKeys#PROBABILITY);
+			// be has Rate and Probablility there is only successfull transition. 
+			if ( rate <> null and prob == null and nextStatus == IMA!StatusType#FAILED ) {
+				return true;
+			}
+		}
 		if ( be.~values.get(IMA!ValueKeys#PROBABILITY) <> null ) { // Do not skip if probability is not set
 			if ((be.~values.get(IMA!ValueKeys#PROBABILITY) == 0 and nextStatus == IMA!StatusType#SUCCESS) or 
 				(be.~values.get(IMA!ValueKeys#PROBABILITY) == 1 and nextStatus == IMA!StatusType#FAILED)) {
-				skip = true;
+				// Skip when the probability of the transition is 0%.
+				return true;
 			}
 		}
 	}
-	return skip;
+	return false;
 }
 
 
