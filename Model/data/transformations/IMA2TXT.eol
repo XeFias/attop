@@ -38,10 +38,10 @@
 
 operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integer, Integer, String) {
 
-	if ( UATV!Domain.allInstances().select(d|d.name == "lambda").size() == 0 or
-		 UATV!Domain.allInstances().select(d|d.name == "prob").size() == 0 ) {
+/*	if ( UATV!Domain.allInstances().select(d|d.name == "lambda").size() == 0 or
+		 UATV!Domain.allInstances().select(d|d.name == "prob").size() == 0  ) {
 		throw "The BEs in the itermidiate automata does not have the required domains 'lambda' (rate) or 'prob' (probability) ";	 
-	} 
+	} */
 
 	var IMA = IMA!InterimAutomaton.allInstances().first();
 	var states = IMA!State.allInstances();
@@ -53,8 +53,17 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 	// Add values to BEs in attack-tree.
 	// Values for Markov Automata. These are part of the IMA model.
 	// MA specific values
-	var rateValues: 		Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
-	var probabilityValues:	Set(UATV!attributes)	= UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
+	var rateDomain = UATV!Domain.allInstances().select(d|d.name == "lambda");
+	var rateValues: Set(UATV!attributes) = Set{};
+	if ( rateDomain.size() > 0 ) {
+		rateValues = UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
+	}
+	
+	var probDomain = UATV!Domain.allInstances().select(d|d.name == "prob");
+	var probabilityValues:	Set(UATV!attributes)= Set{};
+	if ( probDomain.size() > 0 ) {
+		probabilityValues = UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
+	}
 
 	var maStr:String = "";
 	for (state in states) {

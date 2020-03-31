@@ -50,11 +50,11 @@ operation addProbabilityBasedBE(tmpl	: Uppaal!Template,
 								choiceState : Integer,
 								globalWithCost : Boolean  ) {
 	// Select between rate or time delay information	
-	if ( getRate( beID ) <> -1 ){
+//	if ( getRate( beID ) <> -1 ){
 		return addProbabilityBasedBEWithRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
-	} else {
-		return addProbabilityBasedBEWithoutRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
-	}
+//	} else {
+//		return addProbabilityBasedBEWithoutRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
+//	}
 }
 
 operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template, 
@@ -64,6 +64,7 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 										beID	: String,
 										choiceState : Integer,
 										globalWithCost : Boolean ) {
+	beID.println("Add for ");
 	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
 	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
 
@@ -79,10 +80,18 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 		// cost accumulator
 		delayLocation.setInvariant( createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) );
 	}
+	var rate = getRate( beID );
+	if ( rate == -1 ) { // No rate has been set. 
+		rate = 0;
+	}
 	// exit rate 
-	delayLocation.exitRate = createLiteralExpression( getRate( beID ) );
+	delayLocation.exitRate = createLiteralExpression( rate );
 
-	var prob : Real = getProbability( beID);
+	var prob : Real = getProbability( beID );
+	if ( prob == -1 ) { // No probability has been set. 
+		prob = 1;
+	}
+	
 	var weight1 : Integer = (prob * 32768.0).round();
 	var weight2 : Integer = 32768 - weight1;
 	if (weight1 == 32768 and prob < 1.0) {
@@ -119,6 +128,7 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 		var targetLocation = stateMap.get(disruption.target);
 		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
 		toSuccess.addComment("Success");
+		// Note: nondeterminism (Multiple Success transitions) is not yet supported
 	}
 	
 	// Processed failed distuptions
@@ -129,6 +139,7 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 		var targetLocation = stateMap.get(disruption.target);
 		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
 		toFailure.addComment("Fail");
+		// Note: nondeterminism (Multiple Fail transitions) is not yet supported
 	}
 
 	return choiceState;
@@ -183,11 +194,12 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		choiceState++;
 
 		if ( globalWithCost ){
-			delayLocation.setInvariant(createConjunction(
+/*			delayLocation.setInvariant(createConjunction(
 				timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
-				createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); 
+				createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); */
+			delayLocation.setInvariant(	createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) );
 		} else {
-			delayLocation.setInvariant(timeVar.simpleComparison( maxT, Uppaal!CompareOperator#LESS_OR_EQUAL ) ); 
+			//delayLocation.setInvariant(timeVar.simpleComparison( maxT, Uppaal!CompareOperator#LESS_OR_EQUAL ) ); 
 		}
 		
 		tmpl.createChanceEdge(choice, delayLocation, weight1);
