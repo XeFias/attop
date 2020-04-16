@@ -6,40 +6,95 @@ rule Base
 	
 	out.initializePredefinedTypes();
 
-	var monolith = out.initializeTemplate( ima.states );
-
 	out.globalDeclarations = new Uppaal!GlobalDeclarations();
 	out.declareClock("cost");
+
+	var monolith = out.initializeTemplate( ima.states );
+	
 	
 	var tmpl 	= monolith.get("tmpl");
 	var stateMap= monolith.get("stateMap");
 	var timeVar	= monolith.get("timeVar");
 
-	out.addStates( tmpl, stateMap, ima.states, timeVar, globalWithCost );
+	var id2Index = out.addStates( tmpl, stateMap, ima.states, timeVar, globalWithCost );
+
+	var rateTemplate = out.createBErateTemplate( id2Index.keySet().size() );
+
+	out.addAllBErateProcesses( rateTemplate, id2Index );
+
 }
 
 operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template, 
 								stateMap: Map(IMA!State,Uppaal!Location),
 								states	: Set(IMA!State),
 								timeVar	: Uppaal!Variable,
-								globalWithCost : Boolean  ) : Uppaal!Template {
+								globalWithCost : Boolean  ) : Map(String, Integer) {
+	var index = 0;
 	var choiceState : Integer = 0; 
+	var uniqueId	: Integer = 0;
+	var id2Index	: Map(String, Integer) = Map{};
 
+	var disruptions:Set(String) = IMA!Disruption.allInstances().collect( d | d.beId ).asSet();
+	for ( beID in disruptions ) { id2Index.put(beID, index); index++;	}
+
+	// Add values to BEs in attack-tree.
+	// Values for Markov Automata. These are part of the IMA model.
+	// MA specific values
+	var rateDomain = UATV!Domain.allInstances().select(d|d.name == "lambda");
+	var rateValues: Set(UATV!attributes) = Set{};
+	if ( rateDomain.size() > 0 ) {
+		rateValues = UATV!Domain.allInstances().select(d|d.name == "lambda").first().attributes;
+	}
+	
+	var probDomain = UATV!Domain.allInstances().select(d|d.name == "prob");
+	var probabilityValues:	Set(UATV!attributes)= Set{};
+	if ( probDomain.size() > 0 ) {
+		probabilityValues = UATV!Domain.allInstances().select(d|d.name == "prob").first().attributes;
+	}
+	
 	// Add all transistions ?
 	for (state : IMA!State in states) {
 		// Lookup state location 
-		if( state.outgoing.size() > 0 ){
-			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
+		if( state.outgoing.size() > 0 and state.name <> "SUCCESS" and state.name <> "FAIL"){
+			var id2IndexOutgoing : Map(String, Integer) = Map{};
+			(" state " + state.name + " id " + state.id + " count " + state.outgoing.size()).println();
+			var beIDs 			= state.outgoing.collect( i|i.beId ).asSet();
+			beIDs.println(" beIDs 2 ");
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
-			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
-				if( beID <> "SUCCESS" and beID <> "FAIL" ){
-					choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
+			var IFAILcount = countIFAIL( rateValues, beIDsCollaction );
+			for ( beID in beIDs ) { id2IndexOutgoing.put( beID, id2Index.get( beID ) ); }
+			
+			// Filter beIDs with BE rate <> 0.
+			// var iFailBEs:Set(BE) = Set{}. Collect all IFAIL BEs.
+			if ( IFAILcount <= 0 ) {
+				// When IFAIL-set is empty add chain if committed states to start every BE.
+				// ending in a split where there exist and outgoing transition for every BE.
+				
+				var exitLocations = addRateTransitions( tmpl, id2IndexOutgoing, stateMap, uniqueId++, state );
+				
+				uniqueId++;
+				for ( beID in exitLocations.keySet() ) { /* handel one outgoing Bes at a time */
+					var location = exitLocations.get(beID);
+					choiceState = addProbabilityBasedBEWithRate_New( tmpl, stateMap, timeVar, state, beID, location, choiceState, globalWithCost );
 				}
+				
+				// Previous solution.			
+				//for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
+				//	if( beID <> "SUCCESS" and beID <> "FAIL" ){
+				//		choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
+				//	}
+				//}
+			} else { 
+				// NOT yet supported. 
+				throw "IFAIL BEs are not yet supported.";		
+				// When IFAIL-set is NOT empty add probabilistic transation where 
+				// the probability is devided equally between all outgoing IFAIL transitions.
+			
 			}
 		}
 	}	
 	
-	return tmpl;
+	return id2Index;
 }
 
 operation addProbabilityBasedBE(tmpl	: Uppaal!Template, 
@@ -56,6 +111,90 @@ operation addProbabilityBasedBE(tmpl	: Uppaal!Template,
 //		return addProbabilityBasedBEWithoutRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
 //	}
 }
+
+operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template, 
+										stateMap: Map(IMA!State,Uppaal!Location),
+										timeVar	: Uppaal!Variable,
+										state	: IMA!State,
+										beID	: String,
+										location: Uppaal!Location,
+										choiceState : Integer,
+										globalWithCost : Boolean ) {
+	beID.println("Add for ");
+	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
+	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
+
+	var srcLocation = location;
+	var choice = tmpl.createChanceNode("Choosing_" + choiceState);
+	choiceState++;
+
+	/*
+	var delayLocation = tmpl.createExpLocation("Active_" + choiceState);
+	delayLocation.addComment( beID );
+	choiceState++;
+	*/
+
+	var prob : Real = getProbability( beID );
+	if ( prob == -1 ) { // No probability has been set. 
+		prob = 1;
+	}
+
+	var weight1 : Integer = (prob * 32768.0).round();
+	var weight2 : Integer = 32768 - weight1;
+	if (weight1 == 32768 and prob < 1.0) {
+		System.err.println("Warning: BE" + beID + " has very high probability rounding off to 1, results will be inaccurate.");
+		weight1 = 32767;
+		weight2 = 1;
+	} else if (prob == 1.0) {
+		weight1 = 1;
+	} else if (weight1 == 0 and prob > 0.0) {
+		System.err.println("Warning: BE" + beID + " has very low probability rounding off to 0, results will be inaccurate.");
+		weight1 = 1;
+		weight2 = 32767;
+	} else if (prob == 0.0) {
+		weight2 = 1;
+	}
+	
+	/*
+	var fromSource = tmpl.createEdge(srcLocation, delayLocation);	
+	fromSource = fromSource.resetClock(timeVar); // x := 0
+	fromSource.addComment("t_" + beID );
+
+	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
+	if ( globalWithCost ) {
+		fromSource.addUpdate(
+			createAssignmentExpr(
+				createVariable("cost").createReferringExpression(),
+				createSum(	createVariable("cost").createReferringExpression(),
+							createLiteralExpression( activationCost ) ) ) );
+	}
+	*/
+	var toChoice = tmpl.createEdge( srcLocation, choice );
+	// Processed successfull distuptions
+	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
+	for ( disruption in succesfullDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
+		toSuccess.addComment("Success");
+		// Note: nondeterminism (Multiple Success transitions) is not yet supported
+	}
+	
+	// Processed failed distuptions
+	var failedDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#FAILED ); 
+	var probabilityDividerFailedDisruptions = failedDisruptions.size();
+	for ( disruption in failedDisruptions ){
+		// create transition
+		var targetLocation = stateMap.get(disruption.target);
+		var toFailure = tmpl.createChanceEdge(choice, targetLocation, weight2);
+		toFailure.addComment("Fail");
+		// Note: nondeterminism (Multiple Fail transitions) is not yet supported
+	}
+
+	return choiceState;
+}
+
+
 
 operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template, 
 										stateMap: Map(IMA!State,Uppaal!Location),
@@ -81,7 +220,8 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 		delayLocation.setInvariant( createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) );
 	}
 	var rate = getRate( beID );
-	if ( rate == -1 ) { // No rate has been set. 
+	if ( rate == -1 ) { // No rate has been set.
+	//TODO: remove rate state 
 		rate = 0;
 	}
 	// exit rate 
@@ -91,7 +231,7 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 	if ( prob == -1 ) { // No probability has been set. 
 		prob = 1;
 	}
-	
+
 	var weight1 : Integer = (prob * 32768.0).round();
 	var weight2 : Integer = 32768 - weight1;
 	if (weight1 == 32768 and prob < 1.0) {
@@ -263,3 +403,71 @@ operation getRate( id : String ) : Real {
 		return -1;
 	return expAttrs.first().value.value.asReal();
 }
+
+// TODO: remove duplicate code 
+operation countIFAIL( rateValues, disruptions ) : Integer {
+	var count:Integer = 0;
+	var beIDs:Set(String) = Set{};
+	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
+		if( beID <> "SUCCESS" and beID <> "FAIL" ){
+			//var probability = probabilityValues.selectOne(a|a.node.id == beID );
+			var rate = rateValues.selectOne(a|a.node.id == beID );
+			if ( rate == null and beIDs.excludes( beID ) ) {
+				beIDs.add( beID );
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
+operation addRateTransitions(	tmpl	: Uppaal!Template, 
+								id2Index: Map(String, Integer), 				
+								stateMap: Map(IMA!State,Uppaal!Location),
+								uniqueId: Integer,  
+								state	: IMA!State) : Map(String,Uppaal!Location) {
+	var locationMap:Map(String,Uppaal!Location) = Map{};
+	
+	var srcLocation = stateMap.get(state);
+
+	var resetLocation = tmpl.createLocation("reset_actBE_" + uniqueId).makeCommitted();
+	var resetEdge = tmpl.createEdge(srcLocation, resetLocation);
+	// TODO: Add output to activationEdge
+	var resetBEsStr = "resetBEs";
+	var resetBEsVar = createVariable(resetBEsStr).createReferringExpression();
+	resetEdge.setSync(resetBEsVar, true);
+
+	var prevLocation = resetLocation;
+	// Build activation chain.	
+	for ( beID in id2Index.keySet() ){
+		beID.println("voor beID = ");
+		if( beID <> "SUCCESS" and beID <> "FAIL" ){
+			var activeLocation = tmpl.createLocation("activate_actBE_" + uniqueId + beID).makeCommitted();
+			var activationEdge = tmpl.createEdge(prevLocation, activeLocation);
+			// TODO: Add output to activationEdge
+			var rateStartStr = "rateStart";
+			var rateStartBEsVar = createVariable(rateStartStr).createReferringExpression().makeArrayExpression( id2Index.get( beID ) );
+			activationEdge.setSync(rateStartBEsVar, true);
+			prevLocation = activeLocation;
+		}
+	}
+	
+	// remove commit for last state in the chain.
+	prevLocation.makeNormal();
+
+	// Build rate fork.	
+	for ( beID in id2Index.keySet() ){
+		if( beID <> "SUCCESS" and beID <> "FAIL" ){
+			var exitLocation = tmpl.createLocation("exit_BE_" + uniqueId + beID).makeCommitted();
+			locationMap.put( beID, exitLocation );
+			var exitEdge = tmpl.createEdge(prevLocation, exitLocation);
+			var rateCompleteStr = "rateComplete";
+			var rateCompleteBEsVar = createVariable(rateCompleteStr).createReferringExpression().makeArrayExpression( id2Index.get( beID ) );
+			exitEdge.setSync(rateCompleteBEsVar, false);
+		}
+	}
+	// return a Map from BE to the location which the state at which the  
+	// rate processes have selected a winner.
+	return locationMap;
+}
+

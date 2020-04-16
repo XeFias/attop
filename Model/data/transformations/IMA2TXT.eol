@@ -68,21 +68,36 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 	var maStr:String = "";
 	for (state in states) {
 		if( state.outgoing.size() > 0 ){
+			var IFAILcount:Integer = 0;
+		
 			var stateStr = state.id.toString(); 
 			if ( printFullState ) { stateStr = state.toString(false); }
 		
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
+			// detect presents of IFAIL.
+			IFAILcount = countIFAIL( rateValues, beIDsCollaction );
 			for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
 				if( beID <> "SUCCESS" and beID <> "FAIL" ){
 					var probability = probabilityValues.selectOne(a|a.node.id == beID );
 					var rate = rateValues.selectOne(a|a.node.id == beID );
 					
 					if ( rate <> null ) {
-						maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
+						if ( IFAILcount > 0 ) { // Create selfloop to disable this transition.  
+							maStr = maStr.concat( toMarkoveTransitionString( printDot, (probStatesId++).toString(), probStatesId, beID, rate.value.value ) );
+						} else { // Add a 'real' Markov transition.
+							maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
+						}
 						totNrOfTransitions++;
-					} else {
-						maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, 0 ) );
+					} else { // has no rate = IFAIL.
+						//maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, 0 ) );
+						var from = state.id;
+						var to = probStatesId;
+						if ( printDot ) { to = probStatesId++; }
+						maStr = maStr.concat( toDecisionTansactionString( printDot, from, to, beID ) );
+						totNrOfTransitions++;
+						if ( printDot ) { from = probStatesId; }
+						maStr = maStr.concat( toProbabilityTransitionString( printDot, from, (probStatesId++).toString(), beID, IMA!StatusType#SUCCESS, 1.0/IFAILcount) );
 						totNrOfTransitions++;
 					}
 					
@@ -103,7 +118,7 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 						if ( probability <> null ) {
 							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, probability.value.value / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
-						} else {
+						} else {  // this is a BCF type BE
 							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, 1 / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
 						}
@@ -169,4 +184,20 @@ operation toFinalTransitionString(toDot:Boolean, stateID:String, nextState:Strin
 		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
 		return ( "(" + stateID + ", \"" + label + "\", " + nextState + ")\n" );
 	}
+}
+
+operation countIFAIL( rateValues, disruptions ) : Integer {
+	var count:Integer = 0;
+	var beIDs:Set(String) = Set{};
+	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
+		if( beID <> "SUCCESS" and beID <> "FAIL" ){
+			//var probability = probabilityValues.selectOne(a|a.node.id == beID );
+			var rate = rateValues.selectOne(a|a.node.id == beID );
+			if ( rate == null and beIDs.excludes( beID ) ) {
+				beIDs.add( beID );
+				count++;
+			}
+		}
+	}
+	return count;
 }

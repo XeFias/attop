@@ -3,9 +3,11 @@
 	import "IMA2TXT.eol";
 
   	var javaDate = new Native("java.util.Date");
-	javaDate.toString().println("Starting IMA2AUT generation: ");
-
+	javaDate.toString().println("Starting IMA2DOT generation: ");
 	var AUT = buildMAText(true, false);
+
+	javaDate.toString().println("Finished IMA2AUT generation: ");
+
 %]
 digraph BCG {
 graph [ dpi = 150 ];

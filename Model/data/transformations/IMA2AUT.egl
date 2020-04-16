@@ -7,6 +7,8 @@
 	var totNrOfStates = 0;
 	var totNrOfTransitions = 0;
 
+	javaDate.toString().println("Finished IMA2AUT generation: ");
+
 %]
 des (0, [%=AUT.second()%], [%=AUT.first()%])
 [%=AUT.third()%]

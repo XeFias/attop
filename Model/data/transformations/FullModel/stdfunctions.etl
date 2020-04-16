@@ -54,6 +54,13 @@ operation Uppaal!Location makeCommitted() : Uppaal!Location
 	return self;
 }
 
+/* Make the specified location commited */
+operation Uppaal!Location makeNormal() : Uppaal!Location
+{
+	self.locationTimeKind = Uppaal!LocationKind#NORMAL;
+	return self;
+}
+
 /* Make the specified location urgent */
 operation Uppaal!Location makeUrgent() : Uppaal!Location
 {

@@ -86,6 +86,9 @@ public class GalileoParser {
 					domains.put(dom.getName(), dom);
 				}
 			}
+			if (attrs.containsKey("dorm")) {
+				node.setNature(Nature.FAULT);
+			}			
 			Attribute attr = vFactory.createAttribute();
 			dom.getAttributes().add(attr);
 			attr.setNode(node);
@@ -126,11 +129,11 @@ public class GalileoParser {
 				} else if (e.getKey().equalsIgnoreCase("cost")) {
 					CostPurpose p = vFactory.createCostPurpose();
 					p.setCostType(CostType.ON_ACTIVATION);
-					dom.setPurpose(p);;
+					dom.setPurpose(p);
 				} else if (e.getKey().equalsIgnoreCase("costrate")) {
 					CostPurpose p = vFactory.createCostPurpose();
 					p.setCostType(CostType.WHILE_ACTIVE);
-					dom.setPurpose(p);;
+					dom.setPurpose(p);
 				}
 				dom.setName(e.getKey());
 				dom.setValueType(realType);
