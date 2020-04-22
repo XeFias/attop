@@ -11,16 +11,16 @@ rule Base
 
 	var monolith = out.initializeTemplate( ima.states );
 	
-	
 	var tmpl 	= monolith.get("tmpl");
 	var stateMap= monolith.get("stateMap");
 	var timeVar	= monolith.get("timeVar");
 
 	var id2Index = out.addStates( tmpl, stateMap, ima.states, timeVar, globalWithCost );
 
-	var rateTemplate = out.createBErateTemplate( id2Index.keySet().size() );
+	var rateTemplate = out.createBErateTemplate( id2Index.keySet().size(), globalWithCost, true, true );
+	var rateWithoutCostRateTemplate = out.createBErateTemplate( id2Index.keySet().size(), globalWithCost, false, false );
 
-	out.addAllBErateProcesses( rateTemplate, id2Index );
+	out.addAllBErateProcesses( rateTemplate, rateWithoutCostRateTemplate, id2Index );
 
 }
 
@@ -31,6 +31,7 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 								globalWithCost : Boolean  ) : Map(String, Integer) {
 	var index = 0;
 	var choiceState : Integer = 0; 
+	var IFAILState	: Integer = 0; 
 	var uniqueId	: Integer = 0;
 	var id2Index	: Map(String, Integer) = Map{};
 
@@ -57,16 +58,15 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 		// Lookup state location 
 		if( state.outgoing.size() > 0 and state.name <> "SUCCESS" and state.name <> "FAIL"){
 			var id2IndexOutgoing : Map(String, Integer) = Map{};
-			(" state " + state.name + " id " + state.id + " count " + state.outgoing.size()).println();
 			var beIDs 			= state.outgoing.collect( i|i.beId ).asSet();
-			beIDs.println(" beIDs 2 ");
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
-			var IFAILcount = countIFAIL( rateValues, beIDsCollaction );
+			var IFAILBEs = countIFAIL( rateValues, beIDsCollaction );
+
 			for ( beID in beIDs ) { id2IndexOutgoing.put( beID, id2Index.get( beID ) ); }
 			
 			// Filter beIDs with BE rate <> 0.
 			// var iFailBEs:Set(BE) = Set{}. Collect all IFAIL BEs.
-			if ( IFAILcount <= 0 ) {
+			if ( IFAILBEs.size() <= 0 ) {
 				// When IFAIL-set is empty add chain if committed states to start every BE.
 				// ending in a split where there exist and outgoing transition for every BE.
 				
@@ -75,7 +75,7 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 				uniqueId++;
 				for ( beID in exitLocations.keySet() ) { /* handel one outgoing Bes at a time */
 					var location = exitLocations.get(beID);
-					choiceState = addProbabilityBasedBEWithRate_New( tmpl, stateMap, timeVar, state, beID, location, choiceState, globalWithCost );
+					choiceState = addProbabilityBasedBEWithRate_New( tmpl, stateMap, timeVar, state, beID, location, choiceState);
 				}
 				
 				// Previous solution.			
@@ -85,11 +85,31 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 				//	}
 				//}
 			} else { 
-				// NOT yet supported. 
-				throw "IFAIL BEs are not yet supported.";		
 				// When IFAIL-set is NOT empty add probabilistic transation where 
-				// the probability is devided equally between all outgoing IFAIL transitions.
-			
+				// the probability is divided equally between all outgoing IFAIL transitions.
+				var stateLocation = stateMap.get(state);
+				var choice = tmpl.createChanceNode("Choosing_" + choiceState);
+				choiceState++;
+				tmpl.createEdge(stateLocation, choice);
+
+				for ( BeID in IFAILBEs ){
+					var cost:Integer = 0 ;
+					// create node and transitions
+					var IFAILLocation = tmpl.createLocation("IFAIL_" + BeID + "_" + IFAILState ).makeCommitted();
+					IFAILState++; 
+					var toBE = tmpl.createChanceEdge(choice, IFAILLocation, 1);
+					// Add fixed cost.
+					var activationCost = getCost( BeID, UATV!CostType#ON_ACTIVATION ).asInteger();
+					if ( activationCost <> -1 ) { cost = activationCost; } 		
+					if ( globalWithCost ) {
+						toBE.addUpdate(
+							createAssignmentExpr(
+								createVariable("cost").createReferringExpression(),
+								createSum(	createVariable("cost").createReferringExpression(),
+											createLiteralExpression( cost.asString() ) ) ) );
+					}
+					choiceState = addProbabilityBasedBEWithRate_New( tmpl, stateMap, timeVar, state, BeID, IFAILLocation, choiceState );
+				}
 			}
 		}
 	}	
@@ -118,9 +138,7 @@ operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template,
 										state	: IMA!State,
 										beID	: String,
 										location: Uppaal!Location,
-										choiceState : Integer,
-										globalWithCost : Boolean ) {
-	beID.println("Add for ");
+										choiceState : Integer) : Integer{
 	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
 	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
 
@@ -135,7 +153,7 @@ operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template,
 	*/
 
 	var prob : Real = getProbability( beID );
-	if ( prob == -1 ) { // No probability has been set. 
+	if ( prob == -1 ) { // No probability has been set. Basic Component Failure (BCF). 
 		prob = 1;
 	}
 
@@ -176,6 +194,7 @@ operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template,
 		// create transition
 		var targetLocation = stateMap.get(disruption.target);
 		var toSuccess = tmpl.createChanceEdge(choice, targetLocation, weight1);
+		// TODO: add global damage update here.
 		toSuccess.addComment("Success");
 		// Note: nondeterminism (Multiple Success transitions) is not yet supported
 	}
@@ -203,7 +222,6 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 										beID	: String,
 										choiceState : Integer,
 										globalWithCost : Boolean ) {
-	beID.println("Add for ");
 	var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
 	var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
 
@@ -405,7 +423,7 @@ operation getRate( id : String ) : Real {
 }
 
 // TODO: remove duplicate code 
-operation countIFAIL( rateValues, disruptions ) : Integer {
+operation countIFAIL( rateValues, disruptions ) : Set(String) {
 	var count:Integer = 0;
 	var beIDs:Set(String) = Set{};
 	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
@@ -418,7 +436,7 @@ operation countIFAIL( rateValues, disruptions ) : Integer {
 			}
 		}
 	}
-	return count;
+	return beIDs;
 }
 
 operation addRateTransitions(	tmpl	: Uppaal!Template, 
@@ -440,7 +458,6 @@ operation addRateTransitions(	tmpl	: Uppaal!Template,
 	var prevLocation = resetLocation;
 	// Build activation chain.	
 	for ( beID in id2Index.keySet() ){
-		beID.println("voor beID = ");
 		if( beID <> "SUCCESS" and beID <> "FAIL" ){
 			var activeLocation = tmpl.createLocation("activate_actBE_" + uniqueId + beID).makeCommitted();
 			var activationEdge = tmpl.createEdge(prevLocation, activeLocation);
