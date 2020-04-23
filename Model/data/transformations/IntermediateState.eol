@@ -105,7 +105,7 @@ operation IMA!State toString(withName:Boolean) : String {
 	}
 	stateStr = stateStr.substring(0, stateStr.length()-1);
 	if (withName) {
-		r = r.concat(stateStr + ") = " + self.name);
+		r = r.concat(stateStr + ") = " + self.name + " (" + self.id + ")");
 	} else {
 		r = r.concat(stateStr + ")");
 	}

@@ -6,7 +6,7 @@
 	var AUT = buildMAText(false, false);
 	var totNrOfStates = 0;
 	var totNrOfTransitions = 0;
-
+	javaDate = new Native("java.util.Date");
 	javaDate.toString().println("Finished IMA2AUT generation: ");
 
 %]

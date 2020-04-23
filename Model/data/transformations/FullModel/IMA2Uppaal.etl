@@ -20,7 +20,7 @@ rule Base
 	var rateTemplate = out.createBErateTemplate( id2Index.keySet().size(), globalWithCost, true, true );
 	var rateWithoutCostRateTemplate = out.createBErateTemplate( id2Index.keySet().size(), globalWithCost, false, false );
 
-	out.addAllBErateProcesses( rateTemplate, rateWithoutCostRateTemplate, id2Index );
+	out.addAllBErateProcesses( rateTemplate, rateWithoutCostRateTemplate, globalWithCost, id2Index );
 
 }
 

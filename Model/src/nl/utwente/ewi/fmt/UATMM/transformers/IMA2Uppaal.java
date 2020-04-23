@@ -75,9 +75,17 @@ public class IMA2Uppaal extends EpsilonTransformer {
 		EnumMap<Language, String> ret = new EnumMap<Language, String>(Language.class);
 		String etl = "";
 		/* Intentional reusing class UAT2Uppaal i.s.o. IMA2Uppaal to keep one source of truth.*/
-		if ( UAT2Uppaal.USE_CORA ) { etl = "IMA2UppaalCORA.etl"; }
-		else if (IMA2Uppaal.USE_COST) { etl = "IMA2UppaalWithCost.etl"; }
-		else { etl = "IMA2UppaalNoCost.etl"; }
+		if ( UAT2Uppaal.USE_CORA ) { 
+			System.out.println("Selecting UPPAAL-CORA");
+			etl = "IMA2UppaalCORA.etl"; 
+		}
+		else if (IMA2Uppaal.USE_COST) { 
+			System.out.println("Selecting UPPAAL-SMC with cost");
+			etl = "IMA2UppaalWithCost.etl"; 
+		}
+		else { etl = "IMA2UppaalNoCost.etl"; 
+			System.out.println("Selecting UPPAAL-SMC without cost");
+		}
 		ret.put( Language.UPPAAL, "transformations/FullModel/" + etl );
 		return ret;
 	}

@@ -6,7 +6,8 @@
 	javaDate.toString().println("Starting IMA2DOT generation: ");
 	var AUT = buildMAText(true, false);
 
-	javaDate.toString().println("Finished IMA2AUT generation: ");
+	javaDate = new Native("java.util.Date");
+	javaDate.toString().println("Finished IMA2DOT generation: ");
 
 %]
 digraph BCG {

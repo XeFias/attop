@@ -71,6 +71,8 @@ operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, 
 				skip = true;
 			}
 			default : {
+				state.id.println("id = ");
+				state.id.toString().println("id string = ");
 				label = "at_" + state.id.toString();
 			}
 		}
@@ -97,10 +99,13 @@ operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, 
 				"timeVar" = timeVar }; 
 }
 
-operation Uppaal!NTA createBErateTemplate( nrOfrateBEprocessed:Integer ) : Uppaal!Template {
+operation Uppaal!NTA createBErateTemplate(	nrOfrateBEprocessed:Integer,
+											globalWithCost : Boolean,
+											withCostRate : Boolean,
+											addDeclToGlobal : Boolean ) : Uppaal!Template {
 	// Creating Rate templete -----------------------------------	
 	var rateTmpl : Uppaal!Template = new Uppaal!Template();
-	rateTmpl.name = "Rate";
+	if ( withCostRate ) { rateTmpl.name = "Rate"; } else { rateTmpl.name = "RateNoCostRate"; }
 	rateTmpl.declarations = new Uppaal!LocalDeclarations();
 
 	// Create template variable id
@@ -115,13 +120,16 @@ operation Uppaal!NTA createBErateTemplate( nrOfrateBEprocessed:Integer ) : Uppaa
 	var lambdaDecl = createDataDeclaration(lambdaVar);
 	lambdaDecl.typeDefinition.referredType = Uppaal!DoubleType.allInstances().first();
 	var lambdaParm = rateTmpl.addParameter(lambdaDecl, false);
-	// Create template variable costrate
+
 	var costRateParameterStr = "costRate";
 	var costRateVar = createVariable(costRateParameterStr);
-	var costRateDecl = createDataDeclaration(costRateVar);
-	costRateDecl.typeDefinition.referredType = Uppaal!PredefinedType.allInstances().select(t | t.name = "int").first();
-	var costRateParm = rateTmpl.addParameter(costRateDecl, false);
-
+	
+	if ( withCostRate ) {
+		// Create template variable costrate
+		var costRateDecl = createDataDeclaration(costRateVar);
+		costRateDecl.typeDefinition.referredType = Uppaal!PredefinedType.allInstances().select(t | t.name = "int").first();
+		var costRateParm = rateTmpl.addParameter(costRateDecl, false);
+	}
 	// Create template variable costrate
 	var fixedCostParameterStr = "fixedCost";
 	var fixedCostVar = createVariable(fixedCostParameterStr);
@@ -137,30 +145,31 @@ operation Uppaal!NTA createBErateTemplate( nrOfrateBEprocessed:Integer ) : Uppaa
 	BElambdaVar.text = "lambda";
 	rate_rateLocation.exitRate = BElambdaVar;
 
-	// cost accumulator
-	rate_rateLocation.setInvariant( createVariable("cost'").simpleComparison(costRateVar, Uppaal!CompareOperator#EQUAL) );
-
+	if ( globalWithCost and withCostRate ) {
+		// cost accumulator
+		rate_rateLocation.setInvariant( createVariable("cost'").simpleComparison(costRateVar, Uppaal!CompareOperator#EQUAL) );
+	}
 
 	var rate_doneLocation = rateTmpl.createLocation("Done");
 	// Create edges		
 	var rate_rateStartEdge = rateTmpl.createEdge(rate_initLocation, rate_rateLocation);
-	var rate_rateDoneEdge = rateTmpl.createEdge(rate_rateLocation, rate_doneLocation);
+	if ( globalWithCost ) {
+		// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
+		rate_rateStartEdge.addUpdate(
+			createAssignmentExpr(
+				createVariable("cost").createReferringExpression(),
+				createSum(	createVariable("cost").createReferringExpression(),
+							createLiteralExpression( "fixedCost" ) ) ) );
+	}	
 
-	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
-	rate_rateDoneEdge.addUpdate(
-		createAssignmentExpr(
-			createVariable("cost").createReferringExpression(),
-			createSum(	createVariable("cost").createReferringExpression(),
-						createLiteralExpression( "fixedCost" ) ) ) );
-	
+	var rate_rateDoneEdge = rateTmpl.createEdge(rate_rateLocation, rate_doneLocation);
 	var rate_rateResetIfNotDoneEdge = rateTmpl.createEdge(rate_rateLocation, rate_initLocation);
 	var rate_rateResetIfDoneEdge = rateTmpl.createEdge(rate_doneLocation, rate_initLocation);
 
-	// Add reteStart synchronization
+	// Add rateStart synchronization
 	var rateStartStr = "rateStart";
 	var rateStartArray:Uppaal!Variable = createVariable(rateStartStr).makeArray(nrOfrateBEprocessed);
 	var rateStartSignalDeclaration = createChannelDeclaration(rateStartArray).makeBroadcast();
-	self.globalDeclarations.declaration.add(rateStartSignalDeclaration);
 	var rateStartVar = createVariable(rateStartStr).createReferringExpression().makeArrayExpression(idParameterStr);
 	rate_rateStartEdge.setSync(rateStartVar, false);
 
@@ -168,15 +177,14 @@ operation Uppaal!NTA createBErateTemplate( nrOfrateBEprocessed:Integer ) : Uppaa
 	var rateCompleteStr = "rateComplete";
 	var rateCompleteArray:Uppaal!Variable = createVariable(rateCompleteStr).makeArray(nrOfrateBEprocessed);
 	var rateCompleteSignalDeclaration = createChannelDeclaration(rateCompleteArray).makeBroadcast();
-	self.globalDeclarations.declaration.add(rateCompleteSignalDeclaration);
 	var rateCompleteVar = createVariable(rateCompleteStr).createReferringExpression().makeArrayExpression(idParameterStr);
 	rate_rateDoneEdge.setSync(rateCompleteVar, true);
+
 
 	// Add resetBEs synchronization to rate_rateResetIfDoneEdge
 	var resetBEsStr = "resetBEs";
 	var resetBEs:Uppaal!Variable = createVariable(resetBEsStr);
 	var resetBEsSignalDeclaration = createChannelDeclaration(resetBEs).makeBroadcast();
-	self.globalDeclarations.declaration.add(resetBEsSignalDeclaration);
 	var resetBEsVar = createVariable(resetBEsStr).createReferringExpression();
 	rate_rateResetIfDoneEdge.setSync(resetBEsVar, false);
 	// Add resetBEs synchronization to rate_rateResetIfNotDoneEdge
@@ -184,10 +192,18 @@ operation Uppaal!NTA createBErateTemplate( nrOfrateBEprocessed:Integer ) : Uppaa
 	rate_rateResetIfNotDoneEdge.setSync(resetBEs2Var, false);
 	self.template.add(rateTmpl);
 
+	if ( addDeclToGlobal ) {
+		self.globalDeclarations.declaration.add(rateStartSignalDeclaration);
+		self.globalDeclarations.declaration.add(rateCompleteSignalDeclaration);
+		self.globalDeclarations.declaration.add(resetBEsSignalDeclaration);
+	}
+	
 	return rateTmpl;
 }
 
 operation Uppaal!NTA addAllBErateProcesses( rateTemplate:Uppaal!Template, 
+											rateWithoutCostRateTemplate:Uppaal!Template,
+											globalWithCost : Boolean,
 											id2Index: Map(String, Integer) ) {
 
 	var rateDomain = UATV!Domain.allInstances().select(d|d.name == "lambda");
@@ -200,24 +216,36 @@ operation Uppaal!NTA addAllBErateProcesses( rateTemplate:Uppaal!Template,
 		var cost:Integer = 0 ;
 		var costRate:Integer = 0 ;
 		var rate = rateValues.selectOne(a|a.node.id == beID );
-	
+		
 		var activationCost = getCost( beID, UATV!CostType#ON_ACTIVATION ).asInteger();
-		if ( activationCost <> -1 ) { cost = activationCost; } 		
-		var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
-		if ( activeCost <> -1 ) { costRate = activeCost; } 		
+		if ( activationCost <> -1 ) { cost = activationCost; } else { cost = 0; }
+		if ( globalWithCost ) { 		
+			var activeCost = getCost( beID, UATV!CostType#WHILE_ACTIVE ).asInteger();
+			if ( activeCost <> -1 ) { costRate = activeCost; }
+		}
 		
 		if ( rate <> null ) {
-			self.declareBErateProcess( rateTemplate, "TestBE_" + beID, id2Index.get(beID), rate.value.value, costRate, cost );
+			self.declareBErateProcess( rateTemplate, rateWithoutCostRateTemplate, "TestBE_" + beID, id2Index.get(beID), rate.value.value, costRate, cost );
 		}
 	}
 }
 
-operation Uppaal!NTA declareBErateProcess( rateTemplate:Uppaal!Template, name:String, beId:Integer, lambda:Real, costrate:Integer, cost:Integer ) {
+operation Uppaal!NTA declareBErateProcess(	rateTemplate:Uppaal!Template,
+											rateWithoutCostRateTemplate:Uppaal!Template, 
+											name:String, 
+											beId:Integer,
+											lambda:Real,
+											costrate:Integer,
+											cost:Integer ) {
 
 	//TODO: declaration for each BE which has a Rate state.
 	var decl2 = new Uppaal!TemplateDeclaration();
 	decl2.declaredTemplate = new Uppaal!RedefinedTemplate();
-	decl2.declaredTemplate.referredTemplate = rateTemplate;
+	if ( costrate > 0 ) {
+		decl2.declaredTemplate.referredTemplate = rateTemplate;
+	} else {
+		decl2.declaredTemplate.referredTemplate = rateWithoutCostRateTemplate;
+	}
 	decl2.declaredTemplate.name = name; //"BE_1";
 	var BEid = new Uppaal!LiteralExpression();
 	BEid.text = beId.asString();
@@ -225,9 +253,11 @@ operation Uppaal!NTA declareBErateProcess( rateTemplate:Uppaal!Template, name:St
 	var BElambda = new Uppaal!LiteralExpression();
 	BElambda.text = lambda.asString();
 	decl2.argument.add( BElambda );
-	var BEcostRate = new Uppaal!LiteralExpression();
-	BEcostRate.text = costrate.asString();
-	decl2.argument.add( BEcostRate );
+	if ( costrate > 0 ) {
+		var BEcostRate = new Uppaal!LiteralExpression();
+		BEcostRate.text = costrate.asString();
+		decl2.argument.add( BEcostRate );
+	}
 	var BEcost = new Uppaal!LiteralExpression();
 	BEcost.text = cost.asString();
 	decl2.argument.add( BEcost );

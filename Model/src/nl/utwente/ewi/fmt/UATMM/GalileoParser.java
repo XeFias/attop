@@ -198,7 +198,8 @@ public class GalileoParser {
 			if (childNode == null) {
 				childNode = sFactory.createNode();
 				childNode.setLabel(child);
-				String id = child.replaceAll("_", "_-");
+//				String id = child.replaceAll("_", "_-"); // Not accepted by UPPAAL.
+				String id = child.replaceAll("_", "_");
 				id = id.replaceAll(" ", "__");
 				childNode.setId(id);
 				nodes.put(child, childNode);

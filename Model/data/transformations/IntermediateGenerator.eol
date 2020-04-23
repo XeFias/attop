@@ -58,7 +58,13 @@ operation generateIntermediateAutomata(
 					/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
 				}
 			}
-		} 
+			// Outgoing disruptions are set now
+			if ( rootState.outgoing.size() == 0 ) {
+				( "generateIntermediateAutomata id = " + rootState.id + " name = " + rootState.name + " rootState.outgoing.size() = " + rootState.outgoing.size() ).println();
+
+				rootState.printState(true);
+			}
+		}
 	}
 
 
@@ -76,7 +82,12 @@ operation generateIntermediateAutomata(
 
 	var states:Sequence(IMA!State) = IMA!State.allInstances();
 	for ( state in states ) {
-		IMA.states.add( state );
+		if ( state.name == "Generated") { 
+			state.toString(true).println("Generated source state occured at collection stage.");
+			delete state;
+		} else {
+			IMA.states.add( state );
+		}
 	}
 
 	return IMA;
@@ -105,6 +116,7 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 							nextStatus ) 
 : Set(IMA!State) {
 	var newState = prevState.copyState( "Generated" ); // TODO: maybe use state name as hash?
+	
 	// Set BE in state to newStatus
 	newState.setNodeStatus( be, nextStatus );
 
@@ -142,6 +154,7 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	}
 
 	for (state in doubleStates){
+		state.name = "deleted";
 		delete state; // Make sure the double states are deleted from the model !!!
 	}
 
@@ -187,6 +200,10 @@ operation IMA!State recur2_buildIMA(
 				}
 			}
 		}
+		// Outgoing disruptions are set now
+	}
+	if (self.outgoing.size() == 0) {
+		( "recur2_buildIMA id = " + self.id + " name = " + self.name + " self.outgoing.size() = " + self.outgoing.size() ).println();
 	}
 }
 
@@ -689,6 +706,8 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 	var id:Integer = 4; // Solve magic number. Relate it to number of resurved IMA:GoalStates
 	
 	for (disruption:IMA!Disruption in disruptions) {
+		if ( disruption.source.name == "deleted") { disruption.source.toString(true).println("deleted source state not deleted in source"); }
+		if ( disruption.target.name == "deleted") { disruption.target.toString(true).println("deleted source state not deleted in target"); }
 		// Set id of source state if not set
 		if ( disruption.source.id == -1 ) {
 			disruption.source.id = id;
@@ -708,6 +727,9 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 			}
 			id++;
 		}
+		
+		if ( disruption.source.name == "Generated") { disruption.source.toString(true).println("Generated source state occured in source"); }
+		if ( disruption.target.name == "Generated") { disruption.target.toString(true).println("Generated source state occured in target"); }
 	}
 }
 // This operation tests for properties which make it possible to skip this transitsion.

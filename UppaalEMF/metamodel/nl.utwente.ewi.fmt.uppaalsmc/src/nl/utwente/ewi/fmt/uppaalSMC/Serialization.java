@@ -117,9 +117,9 @@ public class Serialization extends UppaalSerialization {
 			for (Parameter p : t.getParameter()) {
 				if (!first) {
 					ret.append(", ");
-					first = false;
 				}
 				ret.append(parameter(p));
+				first = false;
 			}
 			ret.append("</parameter>");
 		}

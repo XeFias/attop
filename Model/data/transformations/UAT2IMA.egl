@@ -1,5 +1,7 @@
 [%
 	import "IntermediateGenerator.eol";
+  	var javaDate = new Native("java.util.Date");
+	javaDate.toString().println("Starting UAT2IMA generation: ");
 
 	var domains : Set(String) = Set{IMA!ValueKeys#RATE,
 									IMA!ValueKeys#PROBABILITY,
@@ -12,6 +14,8 @@
 	attackTree.addValuesToAllNodes(domains);
 
 	var IMA:IMA!InterimAutomaton = generateIntermediateAutomata( attackTree, rootNode);
+	javaDate = new Native("java.util.Date");
+	javaDate.toString().println("Finished UAT2IMA generation: ");
 
 operation getDomain( domain:String ) : Set(UATV!attributes) {
 	var values:		Set(UATV!attributes)	= Set{};
