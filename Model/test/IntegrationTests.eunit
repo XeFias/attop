@@ -9,7 +9,7 @@ operation integrationTest_DefaultTree(){
 	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
 	var gates 							= nodes.excludingAll(BEs);
 
-	var IMA	 		: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, probabilityValues, rootNode);
+	var IMA	 		: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, rootNode);
 	
 	var rootState	: IMA!State = constructInitialState("s0", nodes, rootNode);
 

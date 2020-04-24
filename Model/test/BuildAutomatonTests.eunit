@@ -14,19 +14,47 @@ operation Test_buildIMA() {
 	// Expected result.
 	//var ima_expected = createExpectedResultForANDAttackTree();
 	
-	var IMA	: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, probabilityValues, rootNode);
+	var IMA	: IMA!InterimAutomaton = generateIntermediateAutomata(attackTree, rootNode);
 }
 
 @test
-operation HeightPerGate_DefaultTree() {
+operation ReachabilityPerGate_DefaultTree() {
 	var attackTree	: UATS!AttackTree	= UATS!AttackTree.allInstances().first();
+	var rootNode	: UATS!Node 		= attackTree.Root;
 	var nodes		: Set(UATS!Node) 	= attackTree.Nodes;
 	var BEs			: Set(UATS!Node) 	= nodes.select(n|n.children.isEmpty()).asSet();
+
+	var rootState = constructInitialState( "s0", nodes, rootNode );
+
 	
-	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence(calculateHeightOfGates(BEs));
+	var bottomUp: Sequence(UATS!Node) = fromLevelMapToSequence( calculateHeightOfGates(BEs) );
 	var bottomUpIterator= createIterator(bottomUp);
 	
-	markGatesReachableFromBAS( bottomUpIterator, BEs );
+	var reachabilityRules : Sequence(Sequence(Set(UATS!Node))) = markGatesReachableFromBAS( bottomUpIterator, BEs );
+
+	reachabilityRules.rulesToString().println( "reachabilityRules = " );
+	var reachabilityRulesnormalized : Sequence(Sequence(Set(UATS!Node))) = normalizeReachabilityRules( reachabilityRules );
+	reachabilityRulesnormalized.rulesToString().println( "reachabilityRulesnormalized = " );
+	
+	var filtered = removeNodeFromRules( reachabilityRulesnormalized, rootState.getNoneOperationalBEs() );
+	
+	var options = filtered.invalidBEOptions();
+	options.collect(n|n.id).println( "options 1 = " );
+	
+	var be = BEs.random();
+	filtered = removeNodeFromRules( reachabilityRulesnormalized, Set{be} );
+	filtered.rulesToString().println( "filtered id " + be.id + " = "  );
+
+	options = filtered.invalidBEOptions();
+	options.collect(n|n.id).println( "options 2 = " );
+
+	be = BEs.excluding(be).random();
+	filtered = removeNodeFromRules( filtered, Set{be} );
+	filtered.rulesToString().println( "filtered id " + be.id + " = "  );
+
+	options = filtered.invalidBEOptions();
+	options.collect(n|n.id).println( "options 3 = " );
+
 }
 
 operation createExpectedResultForANDAttackTree() 

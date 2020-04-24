@@ -40,3 +40,216 @@ operation Sequence(Any) pop() : Collection {
 		return Collection{element, copy};
 	}
 }
+/*
+	var reachabilityRulesById = Sequence{};
+	for ( gate in reachabilityRules ){
+		var gateSeq : Sequence() = Sequence{};
+		for ( rules in gate ) {
+			var BEset : Set() = Set{};
+			for ( node in rules ){
+				BEset.add( node.id );
+			}
+			gateSeq.add( BEset );
+		}
+		reachabilityRulesById.add( gateSeq );
+	}
+*/
+
+// Node reachabolity operations
+operation Sequence(Sequence(Set(UATS!Node))) rulesToString() 
+: String {
+	var res : String = "\n"; 
+	var gateNr : Integer = 0;
+	for ( gateRules in self ) {
+		res = res.concat("gate: "); 
+		for ( setOfNodes in gateRules ) {
+			res = res.concat("{ ");
+			for ( node in setOfNodes ){
+				res = res.concat(node.id + ",");
+			}
+			res = res.concat("} -> ");
+		}
+		res = res.concat("\n"); 
+		gateNr++;
+	}
+	return res;
+}
+
+
+operation Sequence(Sequence(Set(UATS!Node))) excludingAll( BEs:Set(UATS!Nodes) ) 
+: Sequence(Sequence(Set(UATS!Node))) {
+	var updated : Sequence(Sequence(UATS!Nodes)) = Sequence{};
+
+	for ( gateReasabilityPerPort in self ) {
+		var updatedGateReasabilityPerPort = gateReasabilityPerPort.excludingAll( BEs );
+		updated.add(updatedGateReasabilityPerPort);
+	}
+
+	return updated;
+}
+
+// Every BE in the allowed gate sequence must be placed in the leftmost port 
+// of the Gate activation sequence. 
+operation normalizeReachabilityRules(
+	rulesPerGate: Sequence(Sequence(Set(UATS!Node))) )
+: Sequence(Sequence(Set(UATS!Node))) {
+	var normalized : Sequence(Sequence(Set(String))) = Sequence{};
+	for ( gateRule in rulesPerGate ) {
+		normalized.add( normalizeReachabilityRulesForGate( gateRule ) );
+	}
+	return normalized;
+}
+
+operation normalizeReachabilityRulesForGate(
+	gateRules: Sequence(Set(UATS!Node)) )
+: Sequence(Set(UATS!Node)) {
+	var normalized : Sequence(Set(UATS!Node)) = Sequence{};
+
+	var i:Integer = gateRules.size() - 1; 
+	while ( i >= 0 ){
+		var prevSets = Set{};
+		for ( curSet in gateRules.take( i ) ) {
+			prevSets = prevSets.includingAll( curSet );
+		}
+		var newSet = gateRules.at(i).excludingAll( prevSets );
+		if ( newSet.size() > 0 ) {
+			normalized.add( newSet );
+		}
+		i = i - 1;
+	}
+	return normalized.invert();
+}
+
+operation removeNodeFromRules( rules : Sequence(Sequence(Set(UATS!Node))),
+								nodes : Set(String)  ) 
+: Sequence(Sequence(Set(UATS!Node))) {
+	var filteredRules = Sequence{};
+	for ( gateRules in rules ){
+		var newPort : Sequence() = Sequence{};
+		for ( port in gateRules ) {
+			var filteredSet = port.select( n | nodes.excludes( n.id ) );
+			if ( filteredSet.size() > 0) {
+				newPort.add( filteredSet );
+			}
+		}
+		filteredRules.add( newPort );
+	}
+	return filteredRules;
+}
+
+operation Sequence(Sequence(Set(UATS!Node))) invalidBEOptions() : Set(UATS!Node) {
+//	var heads = Set{};
+	var tails = Set{};
+	for ( gate in self ){
+		//heads.addAll( gate.take( 1 ).flatten() );
+		tails.addAll( gate.tail().flatten() );
+	}
+	return tails;
+}
+
+// Take first n elements from a sequence.
+operation Sequence(Any) tail( ) : Sequence(Any) {
+	if ( self.size() == 0 ) { return Sequence{}; }
+	return self.invert().take( self.size() - 1).invert();
+}
+
+// Take first n elements from a sequence.
+operation Sequence(Any) take( n:Integer ) : Sequence(Any) {
+	var result : Sequence(Any) = Sequence{};
+	var i : Integer = 0;
+	if ( n > self.size() ) { ("Warning: Taking (" + n + ") elements from Collection of size " + self.size()).println(); }
+	if ( n < 0 ) { ("Warning: Can not take a negative amount of elements").println(); }
+	while ( i <= n-1  and i < self.size() ) {
+		result.add( self.at( i ) );
+		i++;
+	}
+	return result;
+}
+
+
+// TODO: remove duplicate code 
+operation getIFAILs( disruptions ) : Set(String) {
+	var beIDs:Set(String) = Set{};
+	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
+		if( beID <> "SUCCESS" and beID <> "FAIL" ){
+			var rate =  beID.~nodeRef.~values.get(IMA!ValueKeys#RATE);
+			if ( rate == null and beIDs.excludes( beID ) ) {
+				beIDs.add( beID );
+			} else {
+			}
+		}
+	}
+	return beIDs;
+}
+
+
+//---------------------- Domain valuse ----------------------
+operation domains() : Set(String){
+	return  Set{IMA!ValueKeys#RATE,
+				IMA!ValueKeys#PROBABILITY,
+				IMA!ValueKeys#COST,
+				IMA!ValueKeys#TMIN,
+				IMA!ValueKeys#TMAX };
+}
+
+operation getDomain( domain:String ) : Set(UATV!attributes) {
+	var values:		Set(UATV!attributes)	= Set{};
+	var domains: 	Sequence(UATV!Domain)	= UATV!Domain.allInstances().select(d|d.name == domain);
+	if ( domains.size() > 0 )	{ values = domains.first().attributes; }
+	return values; 
+}
+
+operation if_then_else( bool:Boolean, value1, value2 ) {
+	if ( bool ) {
+		return value1;
+	} else {
+		return value2;
+	}
+}
+
+// TODO: workaround can be solved by createn new models based on latest EMF. 
+operation isNode( a, node ) : Boolean {
+	if ( a.node.hasProperty("Id") ) {
+		return (a.node.id == node.id);
+	} else {
+		return false;	
+	}
+}
+
+operation getValue( node, values ) {
+	var prob;
+	if ( values.size() > 0 ) {
+		var probVal = values.selectOne( a | isNode( a, node ) );
+		if (probVal <> null) {
+			prob = probVal.value.value;
+		}
+	}
+	return prob;
+}
+
+operation getValuesPerDomain( domains : Set(String) ) : Map(String, Set(UATV!attributes)) {
+	var values : Map(String, Set(UATV!attributes)) = Map{};
+	for ( domain in domains ) {
+		var domainStr = domain.toString();
+		var attributes : Set(UATV!attributes) = getDomain( domainStr );
+		values.put( domainStr, attributes);
+	}
+	return values;
+}
+
+// Add all available BE values to the node using epsilons extended expressions node.~values.
+operation UATS!AttackTree addValuesToAllNodes( domains : Set(String) ) {
+	var values : Map(String, Set(UATV!attributes)) = getValuesPerDomain( domains );
+	for ( node in self.Nodes ) {
+		node.~values = null;
+		if ( node.children.isEmpty() ){ // This is a BE.
+			var val:Map(Integer,Real) = Map{};
+			for ( domain in domains ) {
+				var value = getValue(node, values.get( domain.toString() ) );
+				val.put( domain, value );
+			}
+			node.~values = val;
+		}
+	}
+}
+

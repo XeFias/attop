@@ -1,12 +1,14 @@
 import "IntermediateIterator.eol";
 import "IntermediateState.eol";
 import "IntermediateStateMap.eol";
+import "IntermediateStd.eol";
 
 operation generateIntermediateAutomata( 
 			attackTree:UATS!AttackTree,
 			rootNode:UATS!Node ) 
 		: IMA!InterimAutomaton {
-	
+
+	var Domains : Set(String) = domains();
 	// Assotiate Gates to graph height (from bottom to top) and depth (from top to bottom)  
 	var nodes	: Set(UATS!Node) = attackTree.Nodes;
 	var BEs		: Set(UATS!Node) = nodes.select(n|n.children.isEmpty()).asSet();
@@ -24,6 +26,8 @@ operation generateIntermediateAutomata(
 	var finalState		= rootState.createFinal();
 	var finalStates		= Map{	IMA!GoalState#SUCCESS	= successGoalState,
 								IMA!GoalState#FAIL		= failGoalState};
+
+	attackTree.addValuesToAllNodes(Domains);
 	
 	successGoalState.setDisruption( IMA!StatusType#SUCCESS, finalState );
 	failGoalState.setDisruption( IMA!StatusType#FAILED, finalState );
@@ -33,9 +37,24 @@ operation generateIntermediateAutomata(
 	gStateMap.put(failGoalState);
 
 	// Mark the gates in the attack-tree with a Map describing there reachability.
-	markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );
+	// Retrieve gate rechability data
+	var reachabilityRules = markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );
+	// Normalize rechability data
+	var reachabilityRulesnormalized = normalizeReachabilityRules( reachabilityRules );
+	reachabilityRulesnormalized.rulesToString().println( "reachabilityRules ="  );
 
-	for ( be in rootState.bes.keySet() ) {
+	var invalidBEs = reachabilityRulesnormalized.invalidBEOptions();
+	invalidBEs.collect(n|n.id).println( "options 1 = " );
+	var selection = rootState.bes.keySet().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
+	selection.println( "selection = " ); 
+	rootState.bes.keySet().println("rootState.bes.keySet() = ");
+	
+	rootState.bes.keySet().collect(be | be.~nodeRef.~values.keySet() ).println("be.~nodeRef.~values ");
+	var IFAILs = getIFAILs( selection );
+	IFAILs.println("IFAILs = ");
+	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
+
+	for ( be in selection ) {
 		// New state E representing attack / Markovian state
 		// New disruption/transition from rootState to E with label BE + rate
 		// New state F representing probabolistic state
@@ -50,6 +69,7 @@ operation generateIntermediateAutomata(
 													bottomUpIterator,
 													topDownIterator,
 													finalStates,	// the FAIL and SUCCESS automata state
+													reachabilityRulesnormalized,
 													rootNode,		// attack-tree rootGate
 													rootState,		// root of automata
 													be.~nodeRef, 	// reference to actual attack-tree gate
@@ -110,6 +130,7 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 							bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
 							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 							finalStates:Map(Any,IMA!State),/* Any is StatusType */
+							rules:Sequence(Sequence(Set(UATS!Node))),
 							rootNode:UATS!Node, 
 							prevState:IMA!State, 
 							be:UATS!Node, 
@@ -169,7 +190,7 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 
 	// Recursively process new states to create the monolithic automata.
 	for ( nextState in missingStates ) {
-		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown, finalStates, rootNode);
+		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown, finalStates, rules, rootNode);
 	}
 
 	return targetStates;
@@ -180,10 +201,21 @@ operation IMA!State recur2_buildIMA(
 							bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)), 
 							topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 							finalStates:Map(Any,IMA!State), /* Any = StatusType */
+							rules:Sequence(Sequence(Set(UATS!Node))),
 							rootNode:UATS!Node ) {
 
+	var filtered = removeNodeFromRules( rules, self.getNoneOperationalBEs() );
+	var invalidBEs = filtered.invalidBEOptions();
+	invalidBEs.collect(n|n.id).println( "options 21 = " );
+	var selection = self.getOperationalBEs().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
+	selection.println( "selection 2 = " ); 
+	self.getOperationalBEs().println("getOperationalBEs() = ");
+	var IFAILs = getIFAILs( selection );
+	IFAILs.println("IFAILs = ");
+	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
+
 	// Get remaining BEs which are still OPERATIONAL.
-	for ( be in self.getOperationalBEs() ) {
+	for ( be in selection ) {
 		// Process state when BE SUCCEEDS or FAILS.
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
@@ -191,6 +223,7 @@ operation IMA!State recur2_buildIMA(
 													bottomUp,
 													topDown,
 													finalStates,
+													rules,
 													rootNode,
 													self,
 													be.~nodeRef,
@@ -580,6 +613,16 @@ operation IMA!State getOperationalBEs() : Set(UATS!Node) {
 	return r;
 }
 
+operation IMA!State getNoneOperationalBEs() : Set(UATS!Node) {
+	var r:Set(UATS!Node) = Set{};
+	for ( be in self.bes.keySet() ) {
+		if ( self.bes.get( be ) <> IMA!StatusType#OPERATIONAL ) {
+			r.add( be );
+		}
+	}
+	return r;
+}
+
 // TODO: Should this function be called again and again intil there no longer is a change.
 operation IMA!State setSafeStatuses ( 
 	bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)),
@@ -649,19 +692,32 @@ operation IMA!State propogateDontCareStatuses (
 // Label each Gate with the set of BESs which can reach/influence/modify it.
 operation markGatesReachableFromBAS(
 	bottomUp: Sequence(Sequence(UATS!Node), Sequence(Integer)),	 
-	BEs		: Set(UATS!Node) ) {
-
+	BEs		: Set(UATS!Node) ) : Sequence(Sequence(Set(UATS!Node))) {
+	var reachabilityRules : Sequence(Sequence(Set(UATS!Node))) = Sequence{};
 	// Label all children using there id.
 	for ( be in BEs ) {
 		be.~reachableBy = Set{ be };
 	}
 	// For every gate add set the Union of sets of BEs which can reach the children.
 	while( bottomUp.hasNext() ) {
-		var gate = bottomUp.next(); 
-		gate.~reachableBy = Set{};
+		var gate = bottomUp.next();
+
+		var reachabilityPerPort : Sequence(Set(UATS!Node)) = Sequence{};
 		for ( child in gate.children ) {
+			reachabilityPerPort.add(child.~reachableBy);
+		}
+		// Add expected sequence base on SAND and SOR gates.
+		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
+			reachabilityRules.add( reachabilityPerPort );
+		}
+		gate.~reachableBy = Set{};
+		for ( port in reachabilityPerPort ) {
+			gate.~reachableBy.addAll( port );
+		}
+/*		for ( child in gate.children ) {
 			gate.~reachableBy.addAll( child.~reachableBy );
 		}
+*/
 		// At this point this gate.~reachableBy contains all the BEs which are
 		// able to reach this gate.
 		// Next create a map which maps BEs to children.
@@ -700,6 +756,7 @@ operation markGatesReachableFromBAS(
 
 		delete gate.~beToChildren;
 	}
+	return reachabilityRules;
 }
 
 operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
@@ -754,6 +811,7 @@ operation skipExploringThisPath( be: UATS!Node, nextStatus ) : Boolean {
 	}
 	return false;
 }
+
 
 
 /**********************************EOF****************************************/

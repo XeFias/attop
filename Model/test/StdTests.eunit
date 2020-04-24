@@ -40,3 +40,108 @@ operation Test_combinationsOfObjects() {
 
 	assertEquals( exp, result );
 }
+
+@test
+operation Test_take_Zero() {
+	var A = Sequence{1,2,3,4};
+	var exp = Sequence{};
+	var result = A.take(0);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_Zero_from_Empty() {
+	var A = Sequence{};
+	var exp = Sequence{};
+	var result = A.take(0);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_One_from_Empty() {
+	var A = Sequence{};
+	var exp = Sequence{};
+	var result = A.take(1);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_one() {
+	var A = Sequence{1,2};
+	var exp = Sequence{1};
+	var result = A.take(1);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_all() {
+	var A = Sequence{1,2};
+	var exp = Sequence{1,2};
+	var result = A.take(2);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_one_to_many() {
+	var A = Sequence{1,2};
+	var exp = Sequence{1,2};
+	var result = A.take(3);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_take_negative() {
+	var A = Sequence{1,2};
+	var exp = Sequence{};
+	var result = A.take(-1);
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_tail_of_Empty() {
+	var A = Sequence{};
+	var exp = Sequence{};
+	var result = A.tail();
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_tail_of_SizeOne() {
+	var A = Sequence{1};
+	var exp = Sequence{};
+	var result = A.tail();
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_tail_of_SizeThree() {
+	var A = Sequence{1,2,3};
+	var exp = Sequence{2,3};
+	var result = A.tail();
+	assertEquals( result, exp );	
+}
+
+@test
+operation Test_flatten_flat() {
+	var A = Set{1,2,3};
+	var exp = Set{1,2,3};
+	var result = A.flatten();
+	assertEquals( exp, result );	
+}
+
+@test
+operation Test_flatten_empy() {
+	var A = Set{};
+	var exp = Set{};
+	var result = A.flatten();
+	assertEquals( exp, result );	
+}
+
+@test
+operation Test_flatten_one_Level() {
+	var A = Set{Set{1}, Set{2}};
+	var exp = Set{1, 2};
+	var result = A.flatten().asSet();
+	assertEquals( exp, result );	
+}
+
