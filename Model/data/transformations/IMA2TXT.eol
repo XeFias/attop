@@ -71,8 +71,10 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 			var IFAILcount:Integer = 0;
 		
 			var stateStr = state.id.toString(); 
+			var stateName = state.name;
+			 
 			if ( printFullState ) { stateStr = state.toString(false); }
-		
+			maStr = maStr.concat( stateStr + " [label=\"" + stateName + "\"];\n" );
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
 			// detect presents of IFAIL.
@@ -83,7 +85,8 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 					var rate = rateValues.selectOne(a|a.node.id == beID );
 					
 					if ( rate <> null ) {
-						if ( IFAILcount > 0 ) { // Create selfloop to disable this transition.  
+						if ( IFAILcount > 0 ) { // Create selfloop to disable this transition.
+							stateName.println("Selfloop for state = ");  
 							maStr = maStr.concat( toMarkoveTransitionString( printDot, (probStatesId++).toString(), probStatesId, beID, rate.value.value ) );
 						} else { // Add a 'real' Markov transition.
 							maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
@@ -152,7 +155,7 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 
 operation toMarkoveTransitionString(toDot:Boolean, stateID:String, nextProbabilityState:Integer, beID:String, value:Real) : String {
 	if (toDot) {
-		return ("\"" + stateID + "\"" + " -> " + nextProbabilityState + " [label = \"!" + beID + "\\n rate = " + value + "\", style=dashed]\n");
+		return ("" + stateID + "" + " -> " + nextProbabilityState + " [label = \"!" + beID + "\\n rate = " + value + "\", style=dashed]\n");
 	} else {
 		return ("("+ stateID + ", \"rate " + value + "\", " + nextProbabilityState + ")\n" );
 	}
@@ -171,7 +174,7 @@ operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, 
 	var negationStr = "";
 	if (negation == IMA!StatusType#FAILED) { negationStr = "¬";}
 	if (toDot) {
-		return (dicisionStateID + " -> " + "\"" + nextState + "\"" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
+		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
 	} else {
 		return ( "(" + dicisionStateID + ", \"prob " + value + "\", " + nextState + ")\n" );
 	}
@@ -179,7 +182,7 @@ operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, 
 
 operation toFinalTransitionString(toDot:Boolean, stateID:String, nextState:String, beID:String) : String {
 	if (toDot) {
-		return ( ("\"" + stateID + "\"" + " -> " + "\"" + nextState + "\"" + " [label = \"" + beID + "\"]\n") );
+		return ( ("" + stateID + "" + " -> " + "" + nextState + "" + " [label = \"" + beID + "\"]\n") );
 	} else {
 		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
 		return ( "(" + stateID + ", \"" + label + "\", " + nextState + ")\n" );

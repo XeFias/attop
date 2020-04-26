@@ -71,8 +71,6 @@ operation Uppaal!NTA initializeTemplate( states : Set(IMA!State)) : Map(String, 
 				skip = true;
 			}
 			default : {
-				state.id.println("id = ");
-				state.id.toString().println("id string = ");
 				label = "at_" + state.id.toString();
 			}
 		}

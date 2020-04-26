@@ -41,17 +41,11 @@ operation generateIntermediateAutomata(
 	var reachabilityRules = markGatesReachableFromBAS( bottomUpIterator.copyIterator(), BEs );
 	// Normalize rechability data
 	var reachabilityRulesnormalized = normalizeReachabilityRules( reachabilityRules );
-	reachabilityRulesnormalized.rulesToString().println( "reachabilityRules ="  );
 
 	var invalidBEs = reachabilityRulesnormalized.invalidBEOptions();
-	invalidBEs.collect(n|n.id).println( "options 1 = " );
 	var selection = rootState.bes.keySet().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
-	selection.println( "selection = " ); 
-	rootState.bes.keySet().println("rootState.bes.keySet() = ");
 	
-	rootState.bes.keySet().collect(be | be.~nodeRef.~values.keySet() ).println("be.~nodeRef.~values ");
 	var IFAILs = getIFAILs( selection );
-	IFAILs.println("IFAILs = ");
 	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	for ( be in selection ) {
@@ -62,9 +56,7 @@ operation generateIntermediateAutomata(
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 			// Do not follow transitions for which be corresponding probability equals 0%.
 			// Note: this is only relevant for MA
-//			be.~nodeRef.id.println("be = ");
 			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
-//				"Yes".println();
 				var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
 													bottomUpIterator,
 													topDownIterator,
@@ -77,12 +69,6 @@ operation generateIntermediateAutomata(
 				for ( state in nextStatesBe ) {
 					/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
 				}
-			}
-			// Outgoing disruptions are set now
-			if ( rootState.outgoing.size() == 0 ) {
-				( "generateIntermediateAutomata id = " + rootState.id + " name = " + rootState.name + " rootState.outgoing.size() = " + rootState.outgoing.size() ).println();
-
-				rootState.printState(true);
 			}
 		}
 	}
@@ -102,12 +88,11 @@ operation generateIntermediateAutomata(
 
 	var states:Sequence(IMA!State) = IMA!State.allInstances();
 	for ( state in states ) {
-		if ( state.name == "Generated") { 
+		if ( state.name == "Generated" or state.name == "Previous ??") { 
 			state.toString(true).println("Generated source state occured at collection stage.");
-			delete state;
-		} else {
 			IMA.states.add( state );
 		}
+		IMA.states.add( state );
 	}
 
 	return IMA;
@@ -140,14 +125,19 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	
 	// Set BE in state to newStatus
 	newState.setNodeStatus( be, nextStatus );
-
 	// Calculate the new statuses of the gates in this State
 	var newStates = newState.calculateGateStatusesInState( bottomUp, prevState, be );
 	
+	// Multiple new states have been ceated replacing the state which was being processed.
+	// As such this state must be removed.
+	if (newStates.size() > 1) {
+		delete newState;
+	}
+
 	var missingStates:Set(IMA!State) = Set{};
 	var existingStates:Set(IMA!State) = Set{};
 	var doubleStates:Set(IMA!State) = Set{};
-
+	
 	for ( newState in newStates ) {
 
 		// Propogate SAFE Statuses. ()
@@ -206,12 +196,8 @@ operation IMA!State recur2_buildIMA(
 
 	var filtered = removeNodeFromRules( rules, self.getNoneOperationalBEs() );
 	var invalidBEs = filtered.invalidBEOptions();
-	invalidBEs.collect(n|n.id).println( "options 21 = " );
 	var selection = self.getOperationalBEs().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
-	selection.println( "selection 2 = " ); 
-	self.getOperationalBEs().println("getOperationalBEs() = ");
 	var IFAILs = getIFAILs( selection );
-	IFAILs.println("IFAILs = ");
 	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	// Get remaining BEs which are still OPERATIONAL.
@@ -234,9 +220,6 @@ operation IMA!State recur2_buildIMA(
 			}
 		}
 		// Outgoing disruptions are set now
-	}
-	if (self.outgoing.size() == 0) {
-		( "recur2_buildIMA id = " + self.id + " name = " + self.name + " self.outgoing.size() = " + self.outgoing.size() ).println();
 	}
 }
 
@@ -263,11 +246,11 @@ operation IMA!State calculateGateStatusesInState(
 		var newPacketsOfWork = resultAndnewPacketsOfWork.second();
 		
 		if ( valid ) { 
-			// The last packet detected a race-condition. And as such is replaced by the new packets.
 			if (newPacketsOfWork.size() == 0) {
 				// activation of this 'be' did not result in any new states.
 				DonePackets.add(work.first());
 			} else if (newPacketsOfWork.size() == 1) {
+				// The last packet detected a race-condition. And as such is replaced by the new packets.
 				DonePackets.add(work.first());
 			} else {
 				// 
@@ -292,9 +275,9 @@ operation IMA!State processPacketOfWork(
 	while ( bottomUp.hasNext() and valid ) { // Iterate over gates.
 		var gate = bottomUp.next(); // Next gate
 		var ValidAndnewStatuses = gate.calculateStatusInState( self, prevState, be );
-
 		if( ValidAndnewStatuses.first() == true ){ // valid 'be' activation.
 			var newStatuses = ValidAndnewStatuses.second();
+			
 			if ( newStatuses.size() == 1 ) {// Changing 'be' in the current state did
 				var status = newStatuses.first();
 				self.setNodeStatus(gate, status);
@@ -305,7 +288,6 @@ operation IMA!State processPacketOfWork(
 					var newNextState = self.copyState( "R" );
 					var bottomUpCopy = bottomUp.copyIterator();
 					newNextState.setNodeStatus(gate, newStatus);
-									
 					r.add( Sequence{ newNextState, bottomUpCopy, be } );
 				}
 			} else {
@@ -316,7 +298,6 @@ operation IMA!State processPacketOfWork(
 			r = Set{};
 		}
 	} // State 'self' is processed in the bottom-up direction
-
 	return Collection{valid,r}; // New work packets due to race condition.
 }
 
@@ -415,7 +396,6 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 				// Create a temperary state in which the childeren of this gate are reset.
 				// 1. Copy children from previous state
 				var resetState = self.copyState("resetState");
-		
 				// 2. Reset children which participate in a race condition to the 
 				//    previous status.
 				for ( childB in gate.~beToChildrenFinal.get( be ) ) {
@@ -784,9 +764,6 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 			}
 			id++;
 		}
-		
-		if ( disruption.source.name == "Generated") { disruption.source.toString(true).println("Generated source state occured in source"); }
-		if ( disruption.target.name == "Generated") { disruption.target.toString(true).println("Generated source state occured in target"); }
 	}
 }
 // This operation tests for properties which make it possible to skip this transitsion.
