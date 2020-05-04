@@ -7,7 +7,7 @@ operation generateIntermediateAutomata(
 			attackTree:UATS!AttackTree,
 			rootNode:UATS!Node ) 
 		: IMA!InterimAutomaton {
-
+	var detectedIFAIL = false;
 	var Domains : Set(String) = domains();
 	// Assotiate Gates to graph height (from bottom to top) and depth (from top to bottom)  
 	var nodes	: Set(UATS!Node) = attackTree.Nodes;
@@ -45,18 +45,20 @@ operation generateIntermediateAutomata(
 	var invalidBEs = reachabilityRulesnormalized.invalidBEOptions();
 	var selection = rootState.bes.keySet().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
 	
-	var IFAILs = getIFAILs( selection );
-	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
+//	var IFAILs = getIFAILs( selection );
+//	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	for ( be in selection ) {
+	//for ( be in rootState.bes.keySet() ) {
 		// New state E representing attack / Markovian state
 		// New disruption/transition from rootState to E with label BE + rate
 		// New state F representing probabolistic state
 		// New disruption/transition from E to F with label BE
+		
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
 			// Do not follow transitions for which be corresponding probability equals 0%.
 			// Note: this is only relevant for MA
-			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
+			if ( not skipExploringThisPath( be.~nodeRef, nextStatus, detectedIFAIL ) ) {
 				var nextStatesBe = recur_buildIMA(	gStateMap,		// hashmap containing all generated states 
 													bottomUpIterator,
 													topDownIterator,
@@ -69,14 +71,15 @@ operation generateIntermediateAutomata(
 				for ( state in nextStatesBe ) {
 					/*state F.*/ rootState.setDisruption( be.~nodeRef, nextStatus, state /*, probability*/);
 				}
+				// when the valid execution of an IFAIL-BE has been detected only 
+				// process IFAIL-BEs as represent instantanious execution (no Rate)
+				if ( not detectedIFAIL ) { 
+					detectedIFAIL = ( nextStatesBe.size() > 0 and be.~nodeRef.isIFAIL() );
+				}		 
 			}
 		}
 	}
 
-
-	// Uniquely number all states.
-	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
-	generateIDForAllStates( disruptions );
 
 	// TODO: move the code which add the rates to de IMA here when the problem
 	//  is solved in which eunit is not able to handel models with dependencies.
@@ -86,7 +89,25 @@ operation generateIntermediateAutomata(
 	IMA.successGoal = successGoalState;
 	IMA.failureGoal = failGoalState;
 
+	// Marknodes which are created before detecting valid IFAIL on correspinding state
 	var states:Sequence(IMA!State) = IMA!State.allInstances();
+	introduceSelfLoopsForIFAIL( states, rootState );
+
+	var disruptions:Sequence(IMA!Disruption) = IMA!Disruption.allInstances();
+	states.size().println( "Pre: states.size() = " );
+	disruptions.size().println( "Pre: disruptions.size() = " );
+	removeUnreachableNodes( rootState, states );
+
+	states = IMA!State.allInstances();
+	disruptions = IMA!Disruption.allInstances();
+	states.size().println( "Post: states.size() = " );
+	disruptions.size().println( "Pre: disruptions.size() = " );
+
+	// Uniquely number all states.
+	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
+	generateIDForAllStates( disruptions );
+
+
 	for ( state in states ) {
 		if ( state.name == "Generated" or state.name == "Previous ??") { 
 			state.toString(true).println("Generated source state occured at collection stage.");
@@ -193,18 +214,19 @@ operation IMA!State recur2_buildIMA(
 							finalStates:Map(Any,IMA!State), /* Any = StatusType */
 							rules:Sequence(Sequence(Set(UATS!Node))),
 							rootNode:UATS!Node ) {
-
+	var detectedIFAIL = false;
 	var filtered = removeNodeFromRules( rules, self.getNoneOperationalBEs() );
 	var invalidBEs = filtered.invalidBEOptions();
 	var selection = self.getOperationalBEs().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
-	var IFAILs = getIFAILs( selection );
-	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
+//	var IFAILs = getIFAILs( selection );
+//	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	// Get remaining BEs which are still OPERATIONAL.
-	for ( be in selection ) {
+	//for ( be in selection ) {
+	for ( be in self.getOperationalBEs() ) {
 		// Process state when BE SUCCEEDS or FAILS.
 		for ( nextStatus in Sequence{ IMA!StatusType#SUCCESS, IMA!StatusType#FAILED } ) {
-			if ( not skipExploringThisPath( be.~nodeRef, nextStatus ) ) {
+			if ( not skipExploringThisPath( be.~nodeRef, nextStatus, detectedIFAIL ) ) {
 				var nextStatesBe = recur_buildIMA(	gStateMap, 
 													bottomUp,
 													topDown,
@@ -217,6 +239,11 @@ operation IMA!State recur2_buildIMA(
 				for ( state in nextStatesBe ) { // Create an edge to the new states with BE action as a label.  
 					self.setDisruption( be.~nodeRef, nextStatus, state );
 				}
+				// when the valid execution of an IFAIL-BE has been detected only 
+				// process IFAIL-BEs as represent instantanious execution (no Rate)
+				if ( not detectedIFAIL ) {
+					detectedIFAIL = ( nextStatesBe.size() > 0 and be.~nodeRef.isIFAIL() );
+				}		 
 			}
 		}
 		// Outgoing disruptions are set now
@@ -304,18 +331,18 @@ operation IMA!State processPacketOfWork(
           // Gate.
 operation UATS!Node calculateStatusInState( state:IMA!State, prevState:IMA!State, be:UATS!Node )
 : Collection(Boolean,Set(Any)) /*IMA!StatusType*/ {
-	//var invalid = false;
-	//var r:Set() = Set{};
+	var r = Collection{};
 	switch (self.connector.type().name) {
-		case "AND"	:{ return Collection{ true, Set{ state.calculateStatusOfAND(self) } }; }
-		case "OR"	:{ return Collection{ true, Set{ state.calculateStatusOfOR(self) } }; }	
-		case "SAND"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
-		case "SOR"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
-		case "PAND"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
-		case "POR"	:{ return state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "AND"	:{ r = Collection{ true, Set{ state.calculateStatusOfAND(self) } }; }
+		case "OR"	:{ r = Collection{ true, Set{ state.calculateStatusOfOR(self) } }; }	
+		case "SAND"	:{ r = state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "SOR"	:{ r = state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "PAND"	:{ r = state.calculateStatusOfSequentialGate(self, prevState, be ); }
+		case "POR"	:{ r = state.calculateStatusOfSequentialGate(self, prevState, be ); }
 		default : throw (self.children.println("process UNKNOWN Gate type!____" 
 						+ self.connector.gate.id));
 	}
+	return r;
 }
 
 operation IMA!State calculateStatusOfAND( gate:UATS!Node )
@@ -381,10 +408,10 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
 		// First test if the childeren of this gate including their decendants
 		// are activated in a correct of order.
-		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
+/*		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
 			validActivation = self.isActivatedFromLeft( gate, be );
 		}
-		
+*/		
 		if ( validActivation ) {
 			// If not activated out of order handle potential race condition. 
 			var bes = gate.~beToChildrenFinal.keySet(); // retrieve 'be' which participate in the racecondition.
@@ -458,7 +485,7 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 					statuses.add( self.getNodeStatus(gate) );
 				}
 			}
-		} else {
+		} else { // Invalid action.
 			// Skip gate as its allready changes state.
 		}
 		// At this point 'statuses' contains all statuses which can occure for 
@@ -767,8 +794,11 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 	}
 }
 // This operation tests for properties which make it possible to skip this transitsion.
-operation skipExploringThisPath( be: UATS!Node, nextStatus ) : Boolean {
+operation skipExploringThisPath( be: UATS!Node, nextStatus, detectedIFAIL:Boolean ) : Boolean {
 	if( be.~values <> null ) { // Do not skip if property .~values is not set
+		if ( detectedIFAIL and not be.isIFAIL() ) {
+			return true;
+		}
 
 		if ( be.nature == UATS!Nature#Fault ) { // be is a Fault 
 			var rate = be.~values.get(IMA!ValueKeys#RATE);

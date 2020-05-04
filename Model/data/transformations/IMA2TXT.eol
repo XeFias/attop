@@ -74,7 +74,11 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 			var stateName = state.name;
 			 
 			if ( printFullState ) { stateStr = state.toString(false); }
-			maStr = maStr.concat( stateStr + " [label=\"" + stateName + "\"];\n" );
+			if ( state.mark ) {
+				maStr = maStr.concat( stateStr + " [label=\"" + stateName + "\", color=blue, style=filled];\n" );
+			} else {
+				maStr = maStr.concat( stateStr + " [label=\"" + stateName + "\"];\n" );
+			}
 			var beIDs = state.outgoing.collect( i|i.beId ).asSet();
 			var beIDsCollaction = state.outgoing.collect( i|i.beId );
 			// detect presents of IFAIL.

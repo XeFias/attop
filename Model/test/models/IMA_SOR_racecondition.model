@@ -1,2 +1,9 @@
 <?xml version="1.0" encoding="ASCII"?>
-<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI"/>
+<iMA:State xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:iMA="iMA" name="s0" goalGateId="A">
+  <bes key="E"/>
+  <bes key="F"/>
+  <bes key="D"/>
+  <gates key="A"/>
+  <gates key="B"/>
+  <gates key="C"/>
+</iMA:State>

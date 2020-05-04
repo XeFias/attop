@@ -168,7 +168,7 @@ operation Sequence(Any) take( n:Integer ) : Sequence(Any) {
 
 
 // TODO: remove duplicate code 
-operation getIFAILs( disruptions ) : Set(String) {
+operation getIFAILs( disruptions:Set(String) ) : Set(String) {
 	var beIDs:Set(String) = Set{};
 	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
 		if( beID <> "SUCCESS" and beID <> "FAIL" ){
@@ -182,6 +182,17 @@ operation getIFAILs( disruptions ) : Set(String) {
 	return beIDs;
 }
 
+// When an BE does not have an rate (lambda) this BE has a brobability of 100% 
+// to be performed before BE's with a rate.
+operation UATS!Node isIFAIL() : Boolean {
+	if( self <> null ){
+		var rate =  self.~values.get(IMA!ValueKeys#RATE);
+		if ( rate == null ) {
+			return true;
+		}
+	}
+	return false;
+}
 
 //---------------------- Domain valuse ----------------------
 operation domains() : Set(String){
@@ -253,3 +264,55 @@ operation UATS!AttackTree addValuesToAllNodes( domains : Set(String) ) {
 	}
 }
 
+
+operation removeUnreachableNodes( 	root:IMA!State, 
+									states:Collection(IMA!State) ) {
+	markReachableNodes( root );
+	sweepUnreachableNodes( states );
+}
+
+operation markReachableNodes( state:IMA!State ) {
+	if ( not state.mark ) {
+		state.mark = true;
+		for (disruption in state.outgoing ) {
+			markReachableNodes( disruption.target );
+		}
+	}
+}
+
+operation sweepUnreachableNodes( states:Collection(IMA!State) ) {
+	for ( state in states ) {
+		if ( state.mark ) {
+//			state.mark = false;
+		} else {
+			delete state;
+		}
+	}
+}
+
+operation introduceSelfLoopsForIFAIL( states:Collection(IMA!State), rootState  ) {
+	for (state in states) {
+		//state.id.println( ">>>> state.id = " );
+		//state.toString(true).println();
+		if( state.outgoing.size() > 0 ){
+			var outgoingBEs = state.outgoing.collect( d | d.beId );
+			var contraBEs = rootState.bes.keySet().excludingAll( outgoingBEs );
+			var BES = rootState.bes.keySet().excludingAll( contraBEs );
+			var IFAILs = getIFAILs( BES.asSet() ); 
+			
+			if ( IFAILs.size() > 0 ){
+				//IFAILs.println("IFALS = ");
+				//"removing beIds ".println();
+				for ( disruption in state.outgoing.select( d | IFAILs.excludes( d.beId ) ) ) { // handel one outgoing Bes at a time
+					//("id " + disruption.beId + " " + disruption.newStatus ).println( ", " );
+					//disruption.println("removing: ");
+					//state.outgoing = state.outgoing.excluding( disruption );
+					state.outgoing.remove( disruption );
+					//disruption.println("removed: ");
+					delete disruption;
+				}
+				//"".println();
+			}
+		}
+	}
+}
