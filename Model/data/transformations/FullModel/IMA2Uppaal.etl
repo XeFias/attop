@@ -172,7 +172,6 @@ operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template,
 	} else if (prob == 0.0) {
 		weight2 = 1;
 	}
-	
 	/*
 	var fromSource = tmpl.createEdge(srcLocation, delayLocation);	
 	fromSource = fromSource.resetClock(timeVar); // x := 0

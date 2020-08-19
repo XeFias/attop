@@ -1,7 +1,14 @@
 import "IMA2UppaalCommon.etl";
 
 pre {
+  	var javaDate = new Native("java.util.Date");
+    javaDate.toString().println("Starting IMA2UppaalCORA generation: ");
 	System.out.println("IMA2UppaalCORA.etl:pre");
+}
+
+post {
+  	var javaDate = new Native("java.util.Date");
+    javaDate.toString().println("Finished IMA2UppaalCORA generation: ");
 }
 
 rule Base

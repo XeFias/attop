@@ -142,7 +142,7 @@ public class JavaTypeImpl extends TypeImpl implements JavaType {
 	public String toString() {
 		if (eIsProxy()) return super.toString();
 
-		StringBuilder result = new StringBuilder(super.toString());
+		StringBuffer result = new StringBuffer(super.toString());
 		result.append(" (valueClass: ");
 		result.append(valueClass);
 		result.append(')');

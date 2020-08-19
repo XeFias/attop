@@ -16,6 +16,8 @@ operation generateIntermediateAutomata(
 	var topDown	: Sequence(UATS!Node) = fromLevelMapToSequence(calculateDepthOfGates(rootNode));
 	for ( be in BEs ) { topDown.add(be); } // Add BEs to the tail of the topDown iterator.
 
+	attackTree.addValuesToAllNodes(Domains);
+
 	var gates 			= nodes.excludingAll(BEs);
 	var bottomUpIterator= createIterator(bottomUp);
 	var topDownIterator	= createIterator(topDown);
@@ -27,8 +29,6 @@ operation generateIntermediateAutomata(
 	var finalStates		= Map{	IMA!GoalState#SUCCESS	= successGoalState,
 								IMA!GoalState#FAIL		= failGoalState};
 
-	attackTree.addValuesToAllNodes(Domains);
-	
 	successGoalState.setDisruption( IMA!StatusType#SUCCESS, finalState );
 	failGoalState.setDisruption( IMA!StatusType#FAILED, finalState );
 								
@@ -48,7 +48,7 @@ operation generateIntermediateAutomata(
 //	var IFAILs = getIFAILs( selection );
 //	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
-	for ( be in selection ) {
+	for ( be in rootState.getOperationalBEs() ) {
 	//for ( be in rootState.bes.keySet() ) {
 		// New state E representing attack / Markovian state
 		// New disruption/transition from rootState to E with label BE + rate
@@ -91,18 +91,19 @@ operation generateIntermediateAutomata(
 
 	// Marknodes which are created before detecting valid IFAIL on correspinding state
 	var states:Sequence(IMA!State) = IMA!State.allInstances();
+	/*
 	introduceSelfLoopsForIFAIL( states, rootState );
 
 	var disruptions:Sequence(IMA!Disruption) = IMA!Disruption.allInstances();
 	states.size().println( "Pre: states.size() = " );
 	disruptions.size().println( "Pre: disruptions.size() = " );
-	removeUnreachableNodes( rootState, states );
+	//removeUnreachableNodes( rootState, states );
 
 	states = IMA!State.allInstances();
 	disruptions = IMA!Disruption.allInstances();
 	states.size().println( "Post: states.size() = " );
 	disruptions.size().println( "Pre: disruptions.size() = " );
-
+	*/
 	// Uniquely number all states.
 	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
 	generateIDForAllStates( disruptions );
@@ -282,11 +283,14 @@ operation IMA!State calculateGateStatusesInState(
 			} else {
 				// 
 			}
+			TodoPackets.addAll( newPacketsOfWork );
 		} else {
 			// Processing of the BES activation resulted in a invalid AT-state
 			delete self;
+			TodoPackets = Set{};
+			DonePackets = Set{}; 
 		}
-		TodoPackets.addAll( newPacketsOfWork );
+		//TodoPackets.addAll( newPacketsOfWork );
 	}
 	return DonePackets; // set of new target AT states.
 }
@@ -317,6 +321,7 @@ operation IMA!State processPacketOfWork(
 					newNextState.setNodeStatus(gate, newStatus);
 					r.add( Sequence{ newNextState, bottomUpCopy, be } );
 				}
+				break;				
 			} else {
 				// When calculating the status of a Gate when 'be' changed returned no status.
 			}
@@ -408,14 +413,14 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 	if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) {
 		// First test if the childeren of this gate including their decendants
 		// are activated in a correct of order.
-/*		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
+		if ( gate.connector.type().name == "SAND" or gate.connector.type().name == "SOR" ) {
 			validActivation = self.isActivatedFromLeft( gate, be );
 		}
-*/		
+		
 		if ( validActivation ) {
 			// If not activated out of order handle potential race condition. 
 			var bes = gate.~beToChildrenFinal.keySet(); // retrieve 'be' which participate in the racecondition.
-			if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null.
+			if ( bes.includes( be ) and (prevState <> null) ) { // TODO prevent passing null (initialState).
 				// Because 'be' can reach this gate via multiple children activation of
 				// this 'be' could possibly generate multiple outcomes
 				// Now check what happens when only one child is changed before all others.
@@ -463,7 +468,7 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 						}
 					}
 					// After completion of a sequence the gate state is still OPERATIONAL.
-					// This should be added as on off the new states.
+					// This should be added as one off the new states.
 					if ( newStatus == IMA!StatusType#OPERATIONAL ) {
 						statuses.add( newStatus );
 					}
@@ -501,7 +506,7 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 			} else if ( statuses.size() > 1 ) {
 				out = statuses.excluding( IMA!StatusType#SAFE );
 			} else {
-				
+				// left empty
 			}
 		} else {
 			out = statuses;
@@ -582,7 +587,7 @@ operation IMA!State isActivatedFromLeft( children:OrderedSet(UATS!Node) ) : Bool
 	}
 }
 
-// Test if the childeren of this gate including their decendants are being 
+// Test if the childeren of this gate including their descendants are being 
 // activated in a correct of order.
 operation IMA!State isActivatedFromLeft( gate:UATS!Node, be:UATS!Node ) : Boolean {
 	// get children reachable by the current 'be'.
@@ -610,9 +615,16 @@ operation IMA!State isActivatedFromLeft( gate:UATS!Node, be:UATS!Node ) : Boolea
 }
 
 
-operation IMA!State getOperationalBEs() : Set(UATS!Node) {
-	var r:Set(UATS!Node) = Set{};
-	for ( be in self.bes.keySet() ) {
+operation IMA!State getOperationalBEs() : Sequence(UATS!Node) {
+	var r:Sequence(UATS!Node) = Sequence{};
+	
+	var allBEs = self.bes.keySet();
+	var IFAILs = allBEs.select( n | n.~nodeRef.isIFAIL() ).asSet();
+	var notIFAILs  = allBEs.excludingAll( IFAILs );
+	// BEs without rate first.
+	var BEsequence = IFAILs.asSequence().appendSequence( notIFAILs.asSequence() );	
+	
+	for ( be in BEsequence ) {
 		if ( self.bes.get( be ) == IMA!StatusType#OPERATIONAL ) {
 			r.add( be );
 		}
@@ -750,14 +762,15 @@ operation markGatesReachableFromBAS(
 		// Remove all BEs keys from Map (for this gate) which only have one
 		// Child for a given BE. These can not cause a racecondition
 		gate.~beToChildrenFinal = Map{};
-				
+		gate.~sequences = Set{};
 		for ( be in gate.~beToChildren.keySet() ) {
 			var list = gate.~beToChildren.get( be );
 			if ( list.size() > 1 ){
 				gate.~beToChildrenFinal.put( be, list);
 				// Create set of possible child activation sequences. 
 				// And also add this as an Extended Proplerty.  	 
-				gate.~sequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
+				gate.~sequences.addAll( gate.~beToChildrenFinal.get( be ).asSequence().combinations() );
+
 			}
 		}
 
@@ -796,9 +809,9 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 // This operation tests for properties which make it possible to skip this transitsion.
 operation skipExploringThisPath( be: UATS!Node, nextStatus, detectedIFAIL:Boolean ) : Boolean {
 	if( be.~values <> null ) { // Do not skip if property .~values is not set
-		if ( detectedIFAIL and not be.isIFAIL() ) {
-			return true;
-		}
+		//if ( detectedIFAIL and not be.isIFAIL() ) {
+		//	return true;
+		//}
 
 		if ( be.nature == UATS!Nature#Fault ) { // be is a Fault 
 			var rate = be.~values.get(IMA!ValueKeys#RATE);

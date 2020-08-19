@@ -189,7 +189,7 @@ public class UATMM_valuesPackageImpl extends EPackageImpl implements UATMM_value
 
 	/**
 	 * Creates, registers, and initializes the <b>Package</b> for this model, and for any others upon which it depends.
-	 *
+	 * 
 	 * <p>This method is used to initialize {@link UATMM_valuesPackage#eINSTANCE} when that field is accessed.
 	 * Clients should not invoke it directly. Instead, they should simply access that field to obtain the package.
 	 * <!-- begin-user-doc -->
@@ -203,14 +203,12 @@ public class UATMM_valuesPackageImpl extends EPackageImpl implements UATMM_value
 		if (isInited) return (UATMM_valuesPackage)EPackage.Registry.INSTANCE.getEPackage(UATMM_valuesPackage.eNS_URI);
 
 		// Obtain or create and register package
-		Object registeredUATMM_valuesPackage = EPackage.Registry.INSTANCE.get(eNS_URI);
-		UATMM_valuesPackageImpl theUATMM_valuesPackage = registeredUATMM_valuesPackage instanceof UATMM_valuesPackageImpl ? (UATMM_valuesPackageImpl)registeredUATMM_valuesPackage : new UATMM_valuesPackageImpl();
+		UATMM_valuesPackageImpl theUATMM_valuesPackage = (UATMM_valuesPackageImpl)(EPackage.Registry.INSTANCE.get(eNS_URI) instanceof UATMM_valuesPackageImpl ? EPackage.Registry.INSTANCE.get(eNS_URI) : new UATMM_valuesPackageImpl());
 
 		isInited = true;
 
 		// Obtain or create and register interdependencies
-		Object registeredPackage = EPackage.Registry.INSTANCE.getEPackage(UATMM_structurePackage.eNS_URI);
-		UATMM_structurePackageImpl theUATMM_structurePackage = (UATMM_structurePackageImpl)(registeredPackage instanceof UATMM_structurePackageImpl ? registeredPackage : UATMM_structurePackage.eINSTANCE);
+		UATMM_structurePackageImpl theUATMM_structurePackage = (UATMM_structurePackageImpl)(EPackage.Registry.INSTANCE.getEPackage(UATMM_structurePackage.eNS_URI) instanceof UATMM_structurePackageImpl ? EPackage.Registry.INSTANCE.getEPackage(UATMM_structurePackage.eNS_URI) : UATMM_structurePackage.eINSTANCE);
 
 		// Create package meta-data objects
 		theUATMM_valuesPackage.createPackageContents();
@@ -223,6 +221,7 @@ public class UATMM_valuesPackageImpl extends EPackageImpl implements UATMM_value
 		// Mark meta-data to indicate it can't be changed
 		theUATMM_valuesPackage.freeze();
 
+  
 		// Update the registry and return the package
 		EPackage.Registry.INSTANCE.put(UATMM_valuesPackage.eNS_URI, theUATMM_valuesPackage);
 		return theUATMM_valuesPackage;
@@ -675,6 +674,7 @@ public class UATMM_valuesPackageImpl extends EPackageImpl implements UATMM_value
 
 		initEEnum(probabilityTypeEEnum, ProbabilityType.class, "ProbabilityType");
 		addEEnumLiteral(probabilityTypeEEnum, ProbabilityType.COMPLETION);
+		addEEnumLiteral(probabilityTypeEEnum, ProbabilityType.FAILURE);
 
 		// Create resource
 		createResource(eNS_URI);
@@ -691,12 +691,12 @@ public class UATMM_valuesPackageImpl extends EPackageImpl implements UATMM_value
 	 * @generated
 	 */
 	protected void createDocumentationAnnotations() {
-		String source = "Documentation";
+		String source = "Documentation";	
 		addAnnotation
-		  (probabilityTypeEEnum,
-		   source,
+		  (probabilityTypeEEnum, 
+		   source, 
 		   new String[] {
-			   "documentation", "Probability of emitting a completion signal after the time (if any is specified) has elapsed. If no completion signal is sent, an abort signal is emitted."
+			 "documentation", "Probability of emitting a completion signal after the time (if any is specified) has elapsed. If no completion signal is sent, an abort signal is emitted."
 		   });
 	}
 

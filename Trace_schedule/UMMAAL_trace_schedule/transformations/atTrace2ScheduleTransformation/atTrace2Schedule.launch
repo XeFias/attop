@@ -2,8 +2,12 @@
 <launchConfiguration type="org.eclipse.ant.AntLaunchConfigurationType">
 <booleanAttribute key="org.eclipse.ant.ui.DEFAULT_VM_INSTALL" value="false"/>
 <stringAttribute key="org.eclipse.debug.core.ATTR_REFRESH_SCOPE" value="${project}"/>
-<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS"/>
-<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/UMMAAL_trace_schedule/transformations/atTrace2ScheduleTransformation/atTrace2Schedule.xml"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.CLASSPATH_PROVIDER" value="org.eclipse.ant.ui.AntClasspathProvider"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="UMMAAL_trace_schedule"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.ant.ui.AntClasspathProvider"/>

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -107,7 +108,12 @@ public class UppaalExecutingTransformer implements ITransformer
 				/* Redirect errors to console for users to see */
 				uppaalProcessBuilder.redirectError(ProcessBuilder.Redirect.appendTo(outputFile)); //ProcessBuilder.Redirect.INHERIT);
 				uppaalProcessBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(outputFile));
+			  	Date javaDate = new java.util.Date();
+				System.out.println("Starting Uppaal generation: " + javaDate.toString());
 				Process uppaalProc = uppaalProcessBuilder.start();
+			  	javaDate = new java.util.Date();
+				System.out.println("Finished Uppaal generation: " + javaDate.toString());
+
 				if (uppaalProc.waitFor() != 0) {
 					outStr.close();
 					throw new Exception("Uppaal process has terminated with error. See " + outputFile.getAbsolutePath() + " for details.");

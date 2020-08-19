@@ -8,6 +8,5 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
-	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/UPPAAL-trace-parser"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

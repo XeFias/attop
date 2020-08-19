@@ -153,7 +153,7 @@ public class ProbabilityPurposeImpl extends PurposeImpl implements ProbabilityPu
 	public String toString() {
 		if (eIsProxy()) return super.toString();
 
-		StringBuilder result = new StringBuilder(super.toString());
+		StringBuffer result = new StringBuffer(super.toString());
 		result.append(" (probType: ");
 		result.append(probType);
 		result.append(')');

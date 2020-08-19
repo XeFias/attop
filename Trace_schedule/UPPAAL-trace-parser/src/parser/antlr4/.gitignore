@@ -6,3 +6,5 @@
 /UPPAALTraceParser.java
 /UPPAALTraceBaseVisitor.java
 /UPPAALTraceVisitor.java
+/GrammarVocab.java
+/GrammarVocab.tokens

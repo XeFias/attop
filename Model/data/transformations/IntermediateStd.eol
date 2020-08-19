@@ -12,11 +12,11 @@ operation Collection(IMA!Disruption) toString()	: String {
 	return r;	
 }
 
-operation Sequence(Any) combinations() : Sequence(Any) {
+operation Sequence(Any) combinations() : Set(Any) {
 	if (self.size() == 0) { 
-		return Sequence{Sequence{}};
+		return Set{Sequence{}};
 	} else {
-		var combs = Sequence{};
+		var combs = Set{};
 		for ( element in self ) {
 			var set = Sequence{};
 			for ( elem in self ) { set.add(elem); } //copy
@@ -192,6 +192,14 @@ operation UATS!Node isIFAIL() : Boolean {
 		}
 	}
 	return false;
+}
+
+operation Sequence(Any) appendSequence( A:Sequence(Any) ) 
+: Sequence(Any) {
+	var r = Sequence{};
+	r.addAll(self);
+	r.addAll(A);
+	return r;
 }
 
 //---------------------- Domain valuse ----------------------

@@ -145,3 +145,14 @@ operation Test_flatten_one_Level() {
 	assertEquals( exp, result );	
 }
 
+@test
+operation Test_add_sequence_to_sequence() {
+	var A = Sequence{5,3,4};
+	var B = Sequence{2,0,1};
+
+	var exp = Sequence{5,3,4,2,0,1};
+	var result = A.appendSequence( B );
+	assertEquals( exp, result );	
+}
+
+

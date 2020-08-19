@@ -26,7 +26,15 @@ public enum ProbabilityType implements Enumerator {
 	 * @generated
 	 * @ordered
 	 */
-	COMPLETION(1, "COMPLETION", "COMPLETION");
+	COMPLETION(1, "COMPLETION", "COMPLETION"), /**
+	 * The '<em><b>FAILURE</b></em>' literal object.
+	 * <!-- begin-user-doc -->
+	 * <!-- end-user-doc -->
+	 * @see #FAILURE_VALUE
+	 * @generated
+	 * @ordered
+	 */
+	FAILURE(2, "FAILURE", "FAILURE");
 
 	/**
 	 * The '<em><b>COMPLETION</b></em>' literal value.
@@ -44,6 +52,21 @@ public enum ProbabilityType implements Enumerator {
 	public static final int COMPLETION_VALUE = 1;
 
 	/**
+	 * The '<em><b>FAILURE</b></em>' literal value.
+	 * <!-- begin-user-doc -->
+	 * <p>
+	 * If the meaning of '<em><b>FAILURE</b></em>' literal object isn't clear,
+	 * there really should be more of a description here...
+	 * </p>
+	 * <!-- end-user-doc -->
+	 * @see #FAILURE
+	 * @model
+	 * @generated
+	 * @ordered
+	 */
+	public static final int FAILURE_VALUE = 2;
+
+	/**
 	 * An array of all the '<em><b>Probability Type</b></em>' enumerators.
 	 * <!-- begin-user-doc -->
 	 * <!-- end-user-doc -->
@@ -52,6 +75,7 @@ public enum ProbabilityType implements Enumerator {
 	private static final ProbabilityType[] VALUES_ARRAY =
 		new ProbabilityType[] {
 			COMPLETION,
+			FAILURE,
 		};
 
 	/**
@@ -109,6 +133,7 @@ public enum ProbabilityType implements Enumerator {
 	public static ProbabilityType get(int value) {
 		switch (value) {
 			case COMPLETION_VALUE: return COMPLETION;
+			case FAILURE_VALUE: return FAILURE;
 		}
 		return null;
 	}

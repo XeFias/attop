@@ -93,7 +93,7 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 							stateName.println("Selfloop for state = ");  
 							maStr = maStr.concat( toMarkoveTransitionString( printDot, (probStatesId++).toString(), probStatesId, beID, rate.value.value ) );
 						} else { // Add a 'real' Markov transition.
-							maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
+//							maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
 						}
 						totNrOfTransitions++;
 					} else { // has no rate = IFAIL.
@@ -111,7 +111,7 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 					if ( printDot ) { // TODO: cleanup duplicate code
 						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId++, beID ) );
 					} else {
-						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
+//						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
 					}
 					totNrOfTransitions++;
 
@@ -119,14 +119,15 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 					var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
 					var probabilityDividerSuccesfullDisruptions = succesfullDisruptions.size();
 					for ( disruption in succesfullDisruptions ){
+						var sourceStateStr = disruption.source.id; 
 						var targetStateStr = disruption.target.id.toString(); 
 						if ( printFullState ) { targetStateStr = disruption.target.toString(false); }
 
 						if ( probability <> null ) {
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, probability.value.value / probabilityDividerSuccesfullDisruptions) );
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, sourceStateStr, targetStateStr, beID, IMA!StatusType#SUCCESS, probability.value.value / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
 						} else {  // this is a BCF type BE
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#SUCCESS, 1 / probabilityDividerSuccesfullDisruptions) );
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, sourceStateStr, targetStateStr, beID, IMA!StatusType#SUCCESS, 1 / probabilityDividerSuccesfullDisruptions) );
 							totNrOfTransitions++;
 						}
 					}
@@ -135,9 +136,10 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 					var probabilityDividerFailedDisruptions = failedDisruptions.size();
 					for ( disruption in failedDisruptions ){
 						if ( probability <> null ) {
+							var sourceStateStr = disruption.source.id; 
 							var targetStateStr = disruption.target.id.toString(); 
 							if ( printFullState ) { targetStateStr = disruption.target.toString(false); }
-							maStr = maStr.concat( toProbabilityTransitionString( printDot, probStatesId, targetStateStr, beID, IMA!StatusType#FAILED, ((1 - probability.value.value) / probabilityDividerFailedDisruptions) ) );
+							maStr = maStr.concat( toProbabilityTransitionString( printDot, sourceStateStr, targetStateStr, beID, IMA!StatusType#FAILED, ((1 - probability.value.value) / probabilityDividerFailedDisruptions) ) );
 							totNrOfTransitions++;
 						}
 					}
@@ -167,7 +169,8 @@ operation toMarkoveTransitionString(toDot:Boolean, stateID:String, nextProbabili
 
 operation toDecisionTansactionString(toDot:Boolean, stateID:Integer, nextProbabilityState:Integer, beID:String) : String {
 	if (toDot) {
-		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " [shape=point];\n" );
+//		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " [shape=point];\n" );
+		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " ;\n" );
 	} else {
 		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
 		return ( "(" + stateID + ", \"" + label + "\", 1)\n" );	/*TODO select target state */
@@ -178,7 +181,8 @@ operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, 
 	var negationStr = "";
 	if (negation == IMA!StatusType#FAILED) { negationStr = "¬";}
 	if (toDot) {
-		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
+		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n" + "\"]\n");
+//		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
 	} else {
 		return ( "(" + dicisionStateID + ", \"prob " + value + "\", " + nextState + ")\n" );
 	}

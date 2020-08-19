@@ -1,4 +1,4 @@
 toplevel "A";
 "A" or "B" "C";
-"B" lambda=0.5 prob=1;
-"C" lambda=0.6 prob=1;
+"B" lambda=0.5 prob=0.7;
+"C" lambda=0.6 prob=0.8;

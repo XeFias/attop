@@ -305,7 +305,7 @@ public class ATTMain {
 
 		ITransformer t1 = UAT2Uppaal.instance();
 		for (ITransformer t2 : transformers) {
-			if ( !useMonolith || !t1.equals(t2) ) {
+			if ( !useMonolith || !t1.equals(t2) ) { //Force transformation via IMA when useMonolith is selected.
 				transformersTemp.add(t2);
 			}
 		}
