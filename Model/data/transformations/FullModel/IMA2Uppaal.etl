@@ -78,12 +78,6 @@ operation Uppaal!NTA addStates(	tmpl	: Uppaal!Template,
 					choiceState = addProbabilityBasedBEWithRate_New( tmpl, stateMap, timeVar, state, beID, location, choiceState);
 				}
 				
-				// Previous solution.			
-				//for ( beID in beIDs ) { /* handel one outgoing Bes at a time */
-				//	if( beID <> "SUCCESS" and beID <> "FAIL" ){
-				//		choiceState = addProbabilityBasedBE( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
-				//	}
-				//}
 			} else { 
 				// When IFAIL-set is NOT empty add probabilistic transation where 
 				// the probability is divided equally between all outgoing IFAIL transitions.
@@ -125,11 +119,7 @@ operation addProbabilityBasedBE(tmpl	: Uppaal!Template,
 								choiceState : Integer,
 								globalWithCost : Boolean  ) {
 	// Select between rate or time delay information	
-//	if ( getRate( beID ) <> -1 ){
-		return addProbabilityBasedBEWithRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
-//	} else {
-//		return addProbabilityBasedBEWithoutRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
-//	}
+	return addProbabilityBasedBEWithRate( tmpl, stateMap, timeVar, state, beID, choiceState, globalWithCost );
 }
 
 operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template, 
@@ -172,20 +162,7 @@ operation addProbabilityBasedBEWithRate_New(tmpl	: Uppaal!Template,
 	} else if (prob == 0.0) {
 		weight2 = 1;
 	}
-	/*
-	var fromSource = tmpl.createEdge(srcLocation, delayLocation);	
-	fromSource = fromSource.resetClock(timeVar); // x := 0
-	fromSource.addComment("t_" + beID );
 
-	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
-	if ( globalWithCost ) {
-		fromSource.addUpdate(
-			createAssignmentExpr(
-				createVariable("cost").createReferringExpression(),
-				createSum(	createVariable("cost").createReferringExpression(),
-							createLiteralExpression( activationCost ) ) ) );
-	}
-	*/
 	var toChoice = tmpl.createEdge( srcLocation, choice );
 	// Processed successfull distuptions
 	var succesfullDisruptions = state.outgoing.select( i | i.beId == beID and i.newStatus == IMA!StatusType#SUCCESS ); 
@@ -238,10 +215,8 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 	}
 	var rate = getRate( beID );
 	if ( rate == -1 ) { // No rate has been set.
-	//TODO: remove rate state 
 		rate = 0;
 	}
-	// exit rate 
 	delayLocation.exitRate = createLiteralExpression( rate );
 
 	var prob : Real = getProbability( beID );
@@ -269,7 +244,6 @@ operation addProbabilityBasedBEWithRate(tmpl	: Uppaal!Template,
 	fromSource = fromSource.resetClock(timeVar); // x := 0
 	fromSource.addComment("t_" + beID );
 
-	// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
 	if ( globalWithCost ) {
 		fromSource.addUpdate(
 			createAssignmentExpr(
@@ -351,9 +325,6 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		choiceState++;
 
 		if ( globalWithCost ){
-/*			delayLocation.setInvariant(createConjunction(
-				timeVar.simpleComparison(maxT, Uppaal!CompareOperator#LESS_OR_EQUAL),
-				createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) ) ); */
 			delayLocation.setInvariant(	createVariable("cost'").simpleComparison(activeCost, Uppaal!CompareOperator#EQUAL) );
 		} else {
 			//delayLocation.setInvariant(timeVar.simpleComparison( maxT, Uppaal!CompareOperator#LESS_OR_EQUAL ) ); 
@@ -366,7 +337,6 @@ operation addProbabilityBasedBEWithoutRate(	tmpl	: Uppaal!Template,
 		toSuccess.addComment("Success");
 	
 		if ( globalWithCost ){
-			// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
 			fromSource.addUpdate(
 				createAssignmentExpr(
 					createVariable("cost").createReferringExpression(),

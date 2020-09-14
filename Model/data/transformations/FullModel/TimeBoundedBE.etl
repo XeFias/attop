@@ -12,8 +12,6 @@ rule TimeBoundedBE
 					   or (a.eContainer.purpose.isKindOf(UATV!CostPurpose) and a.value.value.asString().startsWith("Infinity"))
 					)
 			    ).size() = 0
-		/*PERK*/
-		System.out.println("TimeBoundedBE UATS!Node -> List : node = " + node.label);
 		
 		var sigExpr = createVariable("complete").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));
 		var activateVar = createVariable("activate").createReferringExpression().makeArrayExpression(idToSignalNum.get(node.id));

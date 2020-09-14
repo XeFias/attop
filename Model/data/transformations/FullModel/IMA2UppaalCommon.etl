@@ -1,6 +1,5 @@
 import "stdfunctions.etl";
 
-//Wasn't chaching this kind of operations important for performances? I didn't measure much, but it seems to have no effect..
 @cached
 operation getAllAttributes() : Sequence {
 	return UATV!Attribute.allInstances();
@@ -152,7 +151,6 @@ operation Uppaal!NTA createBErateTemplate(	nrOfrateBEprocessed:Integer,
 	// Create edges		
 	var rate_rateStartEdge = rateTmpl.createEdge(rate_initLocation, rate_rateLocation);
 	if ( globalWithCost ) {
-		// TODO: Add fixed cost in trasition toDelay 'cost = cost + 1'
 		rate_rateStartEdge.addUpdate(
 			createAssignmentExpr(
 				createVariable("cost").createReferringExpression(),
@@ -236,7 +234,6 @@ operation Uppaal!NTA declareBErateProcess(	rateTemplate:Uppaal!Template,
 											costrate:Integer,
 											cost:Integer ) {
 
-	//TODO: declaration for each BE which has a Rate state.
 	var decl2 = new Uppaal!TemplateDeclaration();
 	decl2.declaredTemplate = new Uppaal!RedefinedTemplate();
 	if ( costrate > 0 ) {

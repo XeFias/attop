@@ -45,11 +45,8 @@ operation generateIntermediateAutomata(
 	var invalidBEs = reachabilityRulesnormalized.invalidBEOptions();
 	var selection = rootState.bes.keySet().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
 	
-//	var IFAILs = getIFAILs( selection );
-//	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	for ( be in rootState.getOperationalBEs() ) {
-	//for ( be in rootState.bes.keySet() ) {
 		// New state E representing attack / Markovian state
 		// New disruption/transition from rootState to E with label BE + rate
 		// New state F representing probabolistic state
@@ -91,19 +88,7 @@ operation generateIntermediateAutomata(
 
 	// Marknodes which are created before detecting valid IFAIL on correspinding state
 	var states:Sequence(IMA!State) = IMA!State.allInstances();
-	/*
-	introduceSelfLoopsForIFAIL( states, rootState );
 
-	var disruptions:Sequence(IMA!Disruption) = IMA!Disruption.allInstances();
-	states.size().println( "Pre: states.size() = " );
-	disruptions.size().println( "Pre: disruptions.size() = " );
-	//removeUnreachableNodes( rootState, states );
-
-	states = IMA!State.allInstances();
-	disruptions = IMA!Disruption.allInstances();
-	states.size().println( "Post: states.size() = " );
-	disruptions.size().println( "Pre: disruptions.size() = " );
-	*/
 	// Uniquely number all states.
 	var disruptions:Sequence(Disruption) = IMA!Disruption.allInstances();
 	generateIDForAllStates( disruptions );
@@ -195,11 +180,6 @@ operation recur_buildIMA(	gStateMap:Map(Integer, Sequence(IMA!State)),
 	// must include the excisting state which are reached. 
 	var targetStates = missingStates.includingAll( existingStates );
 
-	//TODO: At this point the algotithm could add the egdes (Distuptions) from 
-	// the rootstate(previous) to then new states target stats before continuing
-	// to process these new states.  
-
-
 	// Recursively process new states to create the monolithic automata.
 	for ( nextState in missingStates ) {
 		nextState.recur2_buildIMA( gStateMap, bottomUp, topDown, finalStates, rules, rootNode);
@@ -219,8 +199,6 @@ operation IMA!State recur2_buildIMA(
 	var filtered = removeNodeFromRules( rules, self.getNoneOperationalBEs() );
 	var invalidBEs = filtered.invalidBEOptions();
 	var selection = self.getOperationalBEs().select( beId | invalidBEs.collect(n|n.id).excludes( beId ) );
-//	var IFAILs = getIFAILs( selection );
-//	if ( IFAILs.size() > 0 ) { selection = IFAILs; }
 
 	// Get remaining BEs which are still OPERATIONAL.
 	//for ( be in selection ) {
@@ -371,7 +349,6 @@ operation IMA!State calculateStatusOfAND( gate:UATS!Node )
 		}
 	}
 	return self.getNodeStatus(gate);
-	// If DONTCARE ?? error because unexpected.
 }
 
 operation IMA!State calculateStatusOfOR( gate:UATS!Node )
@@ -400,7 +377,6 @@ operation IMA!State calculateStatusOfOR( gate:UATS!Node )
 	return self.getNodeStatus(gate);
 }
 
-// TODO: How are possible race conditions implemented in DFTCalc and STORM?
 operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:IMA!State, be:UATS!Node )
 : Collection(Boolean,Set(Any)) /* (Boolean, Set(IMA!StatusType)) */ {
 	var out = Set{};
@@ -435,7 +411,6 @@ operation IMA!State calculateStatusOfSequentialGate( gate:UATS!Node, prevState:I
 					resetState.setNodeStatus( childB, prevStatus );
 				}
 		
-				// TODO: move to upfront calculation to start of generateIntermediateAutomata()
 				var childSequences = gate.~sequences;
 				// Generate the cartesian product of orders in which the changes of the 'bes' can occure.
 				// var childSequences = gate.~beToChildrenFinal.get( be ).asSequence().combinations();
@@ -642,7 +617,6 @@ operation IMA!State getNoneOperationalBEs() : Set(UATS!Node) {
 	return r;
 }
 
-// TODO: Should this function be called again and again intil there no longer is a change.
 operation IMA!State setSafeStatuses ( 
 	bottomUp:Sequence(Sequence(UATS!Node), Sequence(Integer)),
 	be:UATS!Node )  {
@@ -696,15 +670,13 @@ operation IMA!State propogateDontCareStatuses (
 	topDown:Sequence(Sequence(UATS!Node), Sequence(Integer)) )  {
 	while ( topDown.hasNext() ) {
 		var gate = topDown.next();
-//		if ( self.getNodeStatus(gate) == IMA!StatusType#OPERATIONAL ) { 
-			var parents = gate.parents;
-			if (parents.size() > 0) {
-				if ( parents.forAll( parent |  self.getNodeStatus(parent) <> IMA!StatusType#OPERATIONAL ) ) {
-					// DONTCARE propogates.
-					self.setNodeStatus(gate, IMA!StatusType#DONTCARE);
-				}
+		var parents = gate.parents;
+		if (parents.size() > 0) {
+			if ( parents.forAll( parent |  self.getNodeStatus(parent) <> IMA!StatusType#OPERATIONAL ) ) {
+				// DONTCARE propogates.
+				self.setNodeStatus(gate, IMA!StatusType#DONTCARE);
 			}
-//		}			
+		}
 	}
 }
 
@@ -733,10 +705,6 @@ operation markGatesReachableFromBAS(
 		for ( port in reachabilityPerPort ) {
 			gate.~reachableBy.addAll( port );
 		}
-/*		for ( child in gate.children ) {
-			gate.~reachableBy.addAll( child.~reachableBy );
-		}
-*/
 		// At this point this gate.~reachableBy contains all the BEs which are
 		// able to reach this gate.
 		// Next create a map which maps BEs to children.
@@ -809,9 +777,9 @@ operation generateIDForAllStates( disruptions:Sequence(IMA!Disruption) ) {
 // This operation tests for properties which make it possible to skip this transitsion.
 operation skipExploringThisPath( be: UATS!Node, nextStatus, detectedIFAIL:Boolean ) : Boolean {
 	if( be.~values <> null ) { // Do not skip if property .~values is not set
-		//if ( detectedIFAIL and not be.isIFAIL() ) {
-		//	return true;
-		//}
+		if ( detectedIFAIL and not be.isIFAIL() ) {
+			return true;
+		}
 
 		if ( be.nature == UATS!Nature#Fault ) { // be is a Fault 
 			var rate = be.~values.get(IMA!ValueKeys#RATE);
@@ -831,7 +799,5 @@ operation skipExploringThisPath( be: UATS!Node, nextStatus, detectedIFAIL:Boolea
 	}
 	return false;
 }
-
-
 
 /**********************************EOF****************************************/

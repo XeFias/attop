@@ -40,20 +40,6 @@ operation Sequence(Any) pop() : Collection {
 		return Collection{element, copy};
 	}
 }
-/*
-	var reachabilityRulesById = Sequence{};
-	for ( gate in reachabilityRules ){
-		var gateSeq : Sequence() = Sequence{};
-		for ( rules in gate ) {
-			var BEset : Set() = Set{};
-			for ( node in rules ){
-				BEset.add( node.id );
-			}
-			gateSeq.add( BEset );
-		}
-		reachabilityRulesById.add( gateSeq );
-	}
-*/
 
 // Node reachabolity operations
 operation Sequence(Sequence(Set(UATS!Node))) rulesToString() 
@@ -138,10 +124,8 @@ operation removeNodeFromRules( rules : Sequence(Sequence(Set(UATS!Node))),
 }
 
 operation Sequence(Sequence(Set(UATS!Node))) invalidBEOptions() : Set(UATS!Node) {
-//	var heads = Set{};
 	var tails = Set{};
 	for ( gate in self ){
-		//heads.addAll( gate.take( 1 ).flatten() );
 		tails.addAll( gate.tail().flatten() );
 	}
 	return tails;
@@ -226,7 +210,6 @@ operation if_then_else( bool:Boolean, value1, value2 ) {
 	}
 }
 
-// TODO: workaround can be solved by createn new models based on latest EMF. 
 operation isNode( a, node ) : Boolean {
 	if ( a.node.hasProperty("Id") ) {
 		return (a.node.id == node.id);
@@ -272,7 +255,6 @@ operation UATS!AttackTree addValuesToAllNodes( domains : Set(String) ) {
 	}
 }
 
-
 operation removeUnreachableNodes( 	root:IMA!State, 
 									states:Collection(IMA!State) ) {
 	markReachableNodes( root );
@@ -291,7 +273,7 @@ operation markReachableNodes( state:IMA!State ) {
 operation sweepUnreachableNodes( states:Collection(IMA!State) ) {
 	for ( state in states ) {
 		if ( state.mark ) {
-//			state.mark = false;
+			state.mark = false;
 		} else {
 			delete state;
 		}
@@ -300,8 +282,6 @@ operation sweepUnreachableNodes( states:Collection(IMA!State) ) {
 
 operation introduceSelfLoopsForIFAIL( states:Collection(IMA!State), rootState  ) {
 	for (state in states) {
-		//state.id.println( ">>>> state.id = " );
-		//state.toString(true).println();
 		if( state.outgoing.size() > 0 ){
 			var outgoingBEs = state.outgoing.collect( d | d.beId );
 			var contraBEs = rootState.bes.keySet().excludingAll( outgoingBEs );
@@ -309,17 +289,10 @@ operation introduceSelfLoopsForIFAIL( states:Collection(IMA!State), rootState  )
 			var IFAILs = getIFAILs( BES.asSet() ); 
 			
 			if ( IFAILs.size() > 0 ){
-				//IFAILs.println("IFALS = ");
-				//"removing beIds ".println();
 				for ( disruption in state.outgoing.select( d | IFAILs.excludes( d.beId ) ) ) { // handel one outgoing Bes at a time
-					//("id " + disruption.beId + " " + disruption.newStatus ).println( ", " );
-					//disruption.println("removing: ");
-					//state.outgoing = state.outgoing.excluding( disruption );
 					state.outgoing.remove( disruption );
-					//disruption.println("removed: ");
 					delete disruption;
 				}
-				//"".println();
 			}
 		}
 	}

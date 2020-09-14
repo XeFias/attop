@@ -93,7 +93,7 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 							stateName.println("Selfloop for state = ");  
 							maStr = maStr.concat( toMarkoveTransitionString( printDot, (probStatesId++).toString(), probStatesId, beID, rate.value.value ) );
 						} else { // Add a 'real' Markov transition.
-//							maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
+							//maStr = maStr.concat( toMarkoveTransitionString( printDot, stateStr, probStatesId++, beID, rate.value.value ) );
 						}
 						totNrOfTransitions++;
 					} else { // has no rate = IFAIL.
@@ -108,10 +108,10 @@ operation buildMAText(printDot:Boolean, printFullState:Boolean) : Sequence(Integ
 						totNrOfTransitions++;
 					}
 					
-					if ( printDot ) { // TODO: cleanup duplicate code
+					if ( printDot ) {
 						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId++, beID ) );
 					} else {
-//						maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
+						//maStr = maStr.concat( toDecisionTansactionString( printDot, probStatesId, probStatesId, beID ) );
 					}
 					totNrOfTransitions++;
 
@@ -169,7 +169,6 @@ operation toMarkoveTransitionString(toDot:Boolean, stateID:String, nextProbabili
 
 operation toDecisionTansactionString(toDot:Boolean, stateID:Integer, nextProbabilityState:Integer, beID:String) : String {
 	if (toDot) {
-//		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " [shape=point];\n" );
 		return ( (stateID + " -> " + nextProbabilityState + "\n") ).concat( nextProbabilityState + " ;\n" );
 	} else {
 		var label = beID; if ( ( beID <> "SUCCESS") and (beID <> "FAIL") ) { label = "BAS"; }
@@ -182,7 +181,6 @@ operation toProbabilityTransitionString(toDot:Boolean, dicisionStateID:Integer, 
 	if (negation == IMA!StatusType#FAILED) { negationStr = "¬";}
 	if (toDot) {
 		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n" + "\"]\n");
-//		return (dicisionStateID + " -> " + "" + nextState + "" + " [label = \"" + negationStr + beID + "\\n prob = " + value.format("%.4s") + "\"]\n");
 	} else {
 		return ( "(" + dicisionStateID + ", \"prob " + value + "\", " + nextState + ")\n" );
 	}
@@ -202,7 +200,6 @@ operation countIFAIL( rateValues, disruptions ) : Integer {
 	var beIDs:Set(String) = Set{};
 	for ( beID in disruptions ) { /* handel one outgoing Bes at a time */
 		if( beID <> "SUCCESS" and beID <> "FAIL" ){
-			//var probability = probabilityValues.selectOne(a|a.node.id == beID );
 			var rate = rateValues.selectOne(a|a.node.id == beID );
 			if ( rate == null and beIDs.excludes( beID ) ) {
 				beIDs.add( beID );
